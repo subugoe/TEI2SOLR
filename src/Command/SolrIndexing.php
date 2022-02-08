@@ -12,7 +12,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class SolrIndexing extends Command
 {
-    protected static $defaultName = 'subugoe:tei2solr';
+    protected static $defaultName = 'app:tei2solr';
     protected static string $description = 'Process TEI data to solr data for importing into solr.';
     private ImporterInterface $importer;
     private ?bool $importSampleTei;
