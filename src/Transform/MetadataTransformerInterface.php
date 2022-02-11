@@ -6,7 +6,12 @@ use DOMXPath;
 
 interface MetadataTransformerInterface
 {
-    public function getAuthor(DOMXPath $xpath): string;
+    public function getAuthor(DOMXPath $xpath): string|array;
+    public function getEditor(DOMXPath $xpath): string|array;
+    public function getDocumentPublisher(DOMXPath $xpath): string;
+    public function getPublicationPlace(DOMXPath $xpath): string;
+    public function getVolumePart(DOMXPath $xpath): string;
+    public function getMarker(DOMXPath $xpath): string;
     public function getCountry(DOMXPath $xpath): string;
     public function getDestinationPlace(DOMXPath $xpath): string;
     public function getFreeKeywords(DOMXPath $xpath): array;

@@ -24,22 +24,102 @@ class MetadataTransformer implements MetadataTransformerInterface
         $this->documentLanguages = $documentLanguages;
     }
 
-    public function getAuthor(DOMXPath $xpath): string
+    public function getAuthor(DOMXPath $xpath): string|array
     {
-        $author = '';
         $authorNode = $xpath->query('//tei:name[@type="person" and @subtype="aut"]');
+
+        $author = '';
+
         if ($authorNode->item(0)) {
             $author = $authorNode->item(0)->nodeValue;
             $author = trim(preg_replace('/\s+/', ' ', $author));
         }
 
+        if (empty($author)) {
+            $authorNodes = $xpath->query('//tei:titleStmt//tei:author//tei:name[@type="person"]');
+
+            $author = [];
+
+            foreach ($authorNodes as $authorNode) {
+                $author[] = trim(preg_replace('/\s+/', ' ', $authorNode->nodeValue));
+            }
+        }
+
         return $author;
+    }
+
+    public function getEditor(DOMXPath $xpath): string|array
+    {
+        $editorNodes = $xpath->query('//tei:titleStmt//tei:editor//tei:name[@type="person"]');
+
+        $editor = [];
+
+        foreach ($editorNodes as $editorNode) {
+            $editor[] = trim(preg_replace('/\s+/', ' ', $editorNode->nodeValue));
+        }
+
+        return $editor;
+    }
+
+    public function getDocumentPublisher(DOMXPath $xpath): string
+    {
+        $publisherNode = $xpath->query('//tei:publicationStmt//tei:publisher//tei:name[@type="org"]');
+
+        $publisher = '';
+
+        if (!empty($publisherNode->item(0)->nodeValue)) {
+            $publisher = trim(preg_replace('/\s+/', ' ', $publisherNode->item(0)->nodeValue));
+        }
+
+        return $publisher;
+    }
+
+    public function getPublicationPlace(DOMXPath $xpath): string
+    {
+        $publicationPlaceNode = $xpath->query('//tei:publicationStmt//tei:pubPlace//tei:name[@type="place"]');
+
+        $publicationPlace = '';
+
+        if (!empty($publicationPlaceNode->item(0)->nodeValue)) {
+            $publicationPlace = trim(preg_replace('/\s+/', ' ', $publicationPlaceNode->item(0)->nodeValue));
+        }
+
+        return $publicationPlace;
+    }
+
+    public function getVolumePart(DOMXPath $xpath): string
+    {
+        $volumePartNode = $xpath->query('//tei:title[@level = "m"]/text()');
+
+        $volumePart = '';
+
+        if (!empty($volumePartNode->item(0))) {
+            $volumePart = $volumePartNode->item(0)->data;
+            $volumePart = trim(preg_replace('/\s+/', ' ', $volumePart));
+        }
+
+        return $volumePart;
+    }
+
+    public function getMarker(DOMXPath $xpath): string
+    {
+        $markerNodes = $xpath->query('//tei:respStmt//tei:name[@type="person"]');
+
+        $marker = '';
+
+        foreach ($markerNodes as $markerNode) {
+            $marker = trim(preg_replace('/\s+/', ' ', $markerNode->nodeValue));
+        }
+
+        return $marker;
     }
 
     public function getCountry(DOMXPath $xpath): string
     {
-        $country = '';
         $countryNode = $xpath->query('//tei:country');
+
+        $country = '';
+
         if ($countryNode->item(0)) {
             $country = $countryNode->item(0)->nodeValue;
         }
@@ -49,8 +129,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getDestinationPlace(DOMXPath $xpath): string
     {
-        $destinationPlace = '';
         $destinationPlaceNode = $xpath->query('//tei:name[@type="place" and @subtype="dtn"]');
+
+        $destinationPlace = '';
+
         if ($destinationPlaceNode->item(0)) {
             $destinationPlace = $destinationPlaceNode->item(0)->nodeValue;
         }
@@ -60,8 +142,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getDoctypeNotes(DOMXPath $xpath, string $id): array
     {
-        $doctypeNotes = [];
         $notesNodes = $xpath->query('//tei:text[@xml:lang="ger"]//tei:div//tei:div//tei:note');
+
+        $doctypeNotes = [];
+
         if (is_iterable($notesNodes) && !empty($notesNodes)) {
             $notes = [];
             foreach ($notesNodes as $key => $notesNode) {
@@ -78,9 +162,11 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getEntities(DOMXPath $xpath): array
     {
-        $entities = [];
         $documentGndsNodes = $xpath->query('//tei:text[@xml:lang="ger"]//tei:name');
+
+        $entities = [];
         $documentEntities = [];
+
         foreach ($documentGndsNodes as $documentGndsNode) {
             if (is_iterable($documentGndsNode->childNodes)) {
                 $entityName = '';
@@ -119,8 +205,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getFreeKeywords(DOMXPath $xpath): array
     {
-        $freeKeywords = [];
         $freeKeyWordNodes = $xpath->query('//tei:keywords[@scheme = "frei"]/tei:term');
+
+        $freeKeywords = [];
+
         if (is_iterable($freeKeyWordNodes)) {
             foreach ($freeKeyWordNodes as $freeKeyWordNode) {
                 if (!empty($freeKeyWordNode->nodeValue)) {
@@ -131,6 +219,7 @@ class MetadataTransformer implements MetadataTransformerInterface
         }
 
         $freeKeyWordNodes = $xpath->query('//tei:keywords[@scheme = "free"]/tei:term');
+
         if (is_iterable($freeKeyWordNodes)) {
             foreach ($freeKeyWordNodes as $freeKeyWordNode) {
                 if (!empty($freeKeyWordNode->nodeValue)) {
@@ -145,8 +234,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getFulltext(DOMXPath $xpath): string
     {
-        $fulltext = '';
         $fulltextNodeList = $xpath->query('//tei:body//tei:div/descendant::text()');
+
+        $fulltext = '';
+
         foreach ($fulltextNodeList as $fulltextNode) {
             $fulltext .= $fulltextNode->data;
         }
@@ -160,8 +251,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getGndKeywords(DOMXPath $xpath): array
     {
-        $gndKeywords = [];
         $gndKeyWordNodes = $xpath->query('//tei:keywords[@scheme = "#gnd"]/tei:term');
+
+        $gndKeywords = [];
+
         if (is_iterable($gndKeyWordNodes)) {
             foreach ($gndKeyWordNodes as $gndKeyWordNode) {
                 if (!empty($gndKeyWordNode->nodeValue)) {
@@ -190,8 +283,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getId(DOMXPath $xpath): string
     {
-        $id = '';
         $idNode = $xpath->query('//tei:text/@xml:id');
+
+        $id = '';
+
         $id = $idNode->item(0)->nodeValue;
 
         return $id;
@@ -199,8 +294,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getImageIds(DOMXPath $xpath): array
     {
-        $imageIds = [];
         $imageIdsNodes = $xpath->query('//tei:graphic/@xml:id');
+
+        $imageIds = [];
+
         if (is_iterable($imageIdsNodes)) {
             foreach ($imageIdsNodes as $imageIdsNode) {
                 if (!empty($imageIdsNode->nodeValue)) {
@@ -215,8 +312,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getImageUrls(DOMXPath $xpath): array
     {
-        $imageUrls = [];
         $imageUrlssNodes = $xpath->query('//tei:graphic/@url');
+
+        $imageUrls = [];
+
         if (is_iterable($imageUrlssNodes)) {
             foreach ($imageUrlssNodes as $imageUrlssNode) {
                 if (!empty($imageUrlssNode->nodeValue)) {
@@ -231,8 +330,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getInstitution(DOMXPath $xpath): string
     {
-        $institution = '';
         $institutionNode = $xpath->query('//tei:institution');
+
+        $institution = '';
+
         if ($institutionNode->item(0)) {
             $institution = $institutionNode->item(0)->nodeValue;
         }
@@ -242,8 +343,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getLanguage(DOMXPath $xpath): string
     {
-        $language = '';
         $languageNode = $xpath->query('//tei:text//@xml:lang');
+
+        $language = '';
+
         if ($languageNode->item(0)) {
             $language = $languageNode->item(0)->nodeValue;
             $language = $this->documentLanguages[$language];
@@ -254,8 +357,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getLicense(DOMXPath $xpath): string
     {
-        $license = '';
         $licenseNode = $xpath->query('//tei:licence');
+
+        $license = '';
+
         if ($licenseNode->item(0)) {
             $license = $licenseNode->item(0)->nodeValue;
         }
@@ -282,8 +387,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getNumberOfPages(DOMXPath $xpath): ?int
     {
-        $numberOfPages = null;
         $numberOfPagesNode = $xpath->query('//tei:pb');
+
+        $numberOfPages = null;
+
         if ($numberOfPagesNode->count()) {
             $numberOfPages = $numberOfPagesNode->count();
         }
@@ -293,8 +400,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getOriginDate(DOMXPath $xpath): string
     {
-        $originDate = '';
         $originDateNode = $xpath->query('//tei:date/text()');
+
+        $originDate = '';
+
         if ($originDateNode->item(0)) {
             $originDate = $originDateNode->item(0)->nodeValue;
         }
@@ -304,8 +413,9 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getOriginPlace(DOMXPath $xpath): string
     {
-        $originPlace = '';
         $originPlaceNode = $xpath->query('//tei:name[@type="place" and @subtype="orn"]');
+
+        $originPlace = '';
 
         if ($originPlaceNode->item(0)) {
             $originPlace = $originPlaceNode->item(0)->nodeValue;
@@ -316,10 +426,21 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getPublicationDate(DOMXPath $xpath): string
     {
-        $publicationDate = '';
         $publicationDateNode = $xpath->query('//date[@type = "orn"]');
+
+        $publicationDate = '';
+
         if ($publicationDateNode->item(0)) {
             $publicationDate = $publicationDateNode->item(0)->nodeValue;
+        }
+
+        if (empty($publicationDate)) {
+            $publicationDateNode = $xpath->query('//tei:date/text()');
+
+            if ($publicationDateNode->item(0)) {
+                $publicationDate = $publicationDateNode->item(0)->nodeValue;
+            }
+
         }
 
         return $publicationDate;
@@ -327,8 +448,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getRecipient(DOMXPath $xpath): string
     {
-        $recipient = '';
         $recipientNode = $xpath->query('//tei:name[@type="person" and @subtype="rcp"]');
+
+        $recipient = '';
+
         if ($recipientNode->item(0)) {
             $recipient = $recipientNode->item(0)->nodeValue;
             $recipient = trim(preg_replace('/\s+/', ' ', $recipient));
@@ -339,8 +462,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getReference(DOMXPath $xpath): string
     {
-        $reference = '';
         $referenceNode = $xpath->query('//tei:relatedItem[@type = "letter" and @subtype = "related"]/tei:ref');
+
+        $reference = '';
+
         if ($referenceNode->item(0)) {
             $referenceText = $referenceNode->item(0)->nodeValue;
             $referenceText = trim(preg_replace('/\s+/', ' ', $referenceText));
@@ -364,8 +489,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getRelatedItems(DOMXPath $xpath): array
     {
-        $relatedItems = [];
         $relatedItemNodes = $xpath->query('//tei:relatedItem[@type="letter" and not(@subtype)]//tei:ref');
+
+        $relatedItems = [];
+
         if (is_iterable($relatedItemNodes)) {
             foreach ($relatedItemNodes as $relatedItemNode) {
                 if (!empty($relatedItemNode->nodeValue)) {
@@ -394,8 +521,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getRepository(DOMXPath $xpath): string
     {
-        $repository = '';
         $repositoryNode = $xpath->query('//tei:repository');
+
+        $repository = '';
+
         if ($repositoryNode->item(0)) {
             $repository = $repositoryNode->item(0)->nodeValue;
         }
@@ -405,8 +534,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getResponse(DOMXPath $xpath): string
     {
-        $response = '';
         $responseNode = $xpath->query('//tei:relatedItem[@type = "letter" and @subtype = "response"]/tei:ref');
+
+        $response = '';
+
         if ($responseNode->item(0)) {
             $responseText = $responseNode->item(0)->nodeValue;
             $responseText = trim(preg_replace('/\s+/', ' ', $responseText));
@@ -430,8 +561,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getScriptSource(DOMXPath $xpath): string
     {
-        $scriptSource = '';
         $supportDescNode = $xpath->query('//tei:supportDesc/tei:extent/text()');
+
+        $scriptSource = '';
+
         if (!empty($supportDescNode->item(0)->data)) {
             $scriptSource .= trim(preg_replace('/\s+/', ' ', $supportDescNode->item(0)->data)).' ';
         }
@@ -467,8 +600,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getSettlement(DOMXPath $xpath): string
     {
-        $settlement = '';
         $settlementNode = $xpath->query('//tei:settlement');
+
+        $settlement = '';
+
         if ($settlementNode->item(0)) {
             $settlement = $settlementNode->item(0)->nodeValue;
         }
@@ -478,8 +613,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getShelfmark(DOMXPath $xpath): string
     {
-        $shelfmark = '';
         $shelfmarkNode = $xpath->query('//tei:idno');
+
+        $shelfmark = '';
+
         if ($shelfmarkNode->item(0)) {
             $shelfmark = trim(preg_replace('/\s+/', ' ', $shelfmarkNode->item(0)->nodeValue));
         }
@@ -491,13 +628,12 @@ class MetadataTransformer implements MetadataTransformerInterface
     {
         $shortTitleNodeList = $xpath->query('//tei:title[@level = "a"]//tei:name/text()');
 
+        $shortTitle = '';
 
         if (null !== $shortTitleNodeList->item(0)) {
             $shortTitle = $shortTitleNodeList->item(0)->data;
             $shortTitle = trim(preg_replace('/\s+/', ' ', $shortTitle));
         }
-
-//        return $shortTitle;
 
         if (!isset($shortTitle)) {
             $shortTitleNodeList = $xpath->query('//tei:title[@type = "short"]/descendant::text()');
@@ -515,6 +651,7 @@ class MetadataTransformer implements MetadataTransformerInterface
     public function getSourceDescription(DOMXPath $xpath): string
     {
         $sourceDescription = '';
+
         $sourceDescriptionNodeList = $xpath->query('//tei:sourceDesc/descendant::text()');
         foreach ($sourceDescriptionNodeList as $sourceDescriptionNode) {
             $sourceDescription .= $sourceDescriptionNode->data;
@@ -530,6 +667,8 @@ class MetadataTransformer implements MetadataTransformerInterface
     public function getTitle(DOMXPath $xpath): string
     {
         $titleNodeList = $xpath->query('//tei:title[@level = "a"]//tei:name/text()');
+
+        $title = '';
 
         if (null !== $titleNodeList->item(0)) {
             $title = $titleNodeList->item(0)->data;
@@ -551,8 +690,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getWriters(DOMXPath $xpath): array
     {
-        $writers = [];
         $writerNodes = $xpath->query('//tei:handNote');
+
+        $writers = [];
+
         if (is_iterable($writerNodes)) {
             foreach ($writerNodes as $writerNode) {
                 foreach ($writerNode->attributes as $attribute) {
@@ -574,5 +715,19 @@ class MetadataTransformer implements MetadataTransformerInterface
         }
 
         return $writers;
+    }
+
+    public function getLocation(DOMXPath $xpath)
+    {
+        $locationNode = $xpath->query('//tei:title[@level = "a"]//tei:name/text()');
+
+        $location = '';
+
+        if (null !== $locationNode->item(0)) {
+            $location = $locationNode->item(0)->data;
+            $location = trim(preg_replace('/\s+/', ' ', $location));
+        }
+
+        return $location;
     }
 }

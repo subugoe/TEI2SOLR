@@ -51,6 +51,7 @@ class Indexer implements IndexerInterface
     private ?bool $indexEntities;
     private ?bool $indexDoctypeNotes;
     private ?string $gndApi;
+    private ?string $transformationFields;
 
     public function __construct(
         Client $client,
@@ -66,7 +67,8 @@ class Indexer implements IndexerInterface
         $this->metadataTransformer = $metadataTransformer;
     }
 
-    public function setConfigs(string $teiDir, string $teiSampleDir, string $litDir, string $gndFilesDir, string $teiImportLogFile, array $literaturDataElements, bool $indexPages, bool $indexEntities, bool $indexDoctypeNotes, string $gndApi): void
+    public function setConfigs(string $teiDir, string $teiSampleDir, string $litDir, string $gndFilesDir, string $teiImportLogFile, array $literaturDataElements, bool $indexPages, bool $indexEntities, bool $indexDoctypeNotes, string $gndApi,
+        string $transformationFields): void
     {
         $this->teiDir = $teiDir;
         $this->teiSampleDir = $teiSampleDir;
@@ -78,6 +80,7 @@ class Indexer implements IndexerInterface
         $this->indexEntities = $indexEntities;
         $this->indexDoctypeNotes = $indexDoctypeNotes;
         $this->gndApi = $gndApi;
+        $this->transformationFields = $transformationFields;
     }
 
     public function deleteSolrIndex(): void
@@ -437,6 +440,7 @@ class Indexer implements IndexerInterface
     private function getDoctypeNotes(DOMXPath $xpath, string $id): array
     {
         $doctypeNotes = [];
+
         $notesNodes = $xpath->query(self::NOTES_XPATH);
         if (is_iterable($notesNodes) && !empty($notesNodes)) {
             foreach ($notesNodes as $key => $notesNode) {
@@ -453,6 +457,7 @@ class Indexer implements IndexerInterface
     private function getEntities(DOMXPath $xpath): array
     {
         $entities = [];
+
         $documentGndsNodes = $xpath->query(self::GNDS_XPATH);
         foreach ($documentGndsNodes as $documentGndsNode) {
             if (is_iterable($documentGndsNode->childNodes)) {
@@ -494,8 +499,10 @@ class Indexer implements IndexerInterface
 
     private function getFulltext(DOMXPath $xpath): string
     {
-        $fulltext = '';
         $fulltextNodeList = $xpath->query(self::FULLTEXT_XPATH);
+
+        $fulltext = '';
+
         foreach ($fulltextNodeList as $fulltextNode) {
             $fulltext .= $fulltextNode->data;
         }
@@ -510,6 +517,7 @@ class Indexer implements IndexerInterface
     private function getGraphics(array $imageIds, array $imageUrls): array
     {
         $graphics = [];
+
         if (!empty($imageIds) && !empty($imageUrls)) {
             foreach ($imageIds as $key => $imageId) {
                 if (!empty($imageId) && !empty($imageUrls[$key])) {
@@ -544,68 +552,23 @@ class Indexer implements IndexerInterface
 
     private function indexDocument(DOMDocument $doc, string $file): void
     {
+        $transformationFields = [];
+
+        if (!empty($this->transformationFields)) {
+            $transformationFields = explode(',', $this->transformationFields);
+        }
+
         $xpath = new DOMXPath($doc);
         $xpath->registerNamespace(self::NAMESPACE_PREFIX, self::TEI_NAMESPACE);
         $id = $this->getId($xpath);
-        $fulltext = $this->getFulltext($xpath);
         $abstracts = $this->getAbstracts($xpath);
         $docType = self::ARTICLE_DOC_TYPE;
-        $shortTitle = $this->metadataTransformer->getShortTitle($xpath);
-        $title = $this->metadataTransformer->getTitle($xpath);
-        $originPlaceGNDNode = $xpath->query(self::ORIGIN_PLACE_XPATH);
 
-        if ($originPlaceGNDNode->item(0)) {
-            $originPlaceGND = $originPlaceGNDNode->item(0)->nodeValue;
-        }
-
-        $originPlace = $this->metadataTransformer->getOriginPlace($xpath);
-        $author = $this->metadataTransformer->getAuthor($xpath);
-        $recipient = $this->metadataTransformer->getRecipient($xpath);
-        $destinationPlace = $this->metadataTransformer->getDestinationPlace($xpath);
-        $originDate = $this->metadataTransformer->getOriginDate($xpath);
-        $license = $this->metadataTransformer->getLicense($xpath);
-        $language = $this->metadataTransformer->getLanguage($xpath);
-        $reference = $this->metadataTransformer->getReference($xpath);
-        $response = $this->metadataTransformer->getResponse($xpath);
-        $relatedItems = $this->metadataTransformer->getRelatedItems($xpath);
-        $repository = $this->metadataTransformer->getRepository($xpath);
-        $institution = $this->metadataTransformer->getInstitution($xpath);
-        $settlement = $this->metadataTransformer->getSettlement($xpath);
-        $country = $this->metadataTransformer->getCountry($xpath);
-
-        $institutionDetail = '';
-        if (!empty($repository)) {
-            $institutionDetail .= $repository;
-        }
-        if (!empty($institution)) {
-            $institutionDetail .= ', '.$institution;
-        }
-        if (!empty($settlement)) {
-            $institutionDetail .= ', '.$settlement;
-        }
-        if (!empty($country)) {
-            $institutionDetail .= ' ('.$country.')';
-        }
-        if (!empty($institutionDetail)) {
-            $institution = trim(preg_replace('/\s+/', ' ', $institutionDetail));
-        }
-
-        $sourceDescription = $this->metadataTransformer->getSourceDescription($xpath);
-        $publicationDate = $this->metadataTransformer->getPublicationDate($xpath);
-        $numberOfPages = $this->metadataTransformer->getNumberOfPages($xpath);
-        $gndKeywords = $this->metadataTransformer->getGndKeywords($xpath);
-        $freeKeywords = $this->metadataTransformer->getFreeKeywords($xpath);
-        $shelfmark = $this->metadataTransformer->getShelfmark($xpath);
-        $scriptSource = $this->metadataTransformer->getScriptSource($xpath);
-        $writers = $this->metadataTransformer->getWriters($xpath);
         $imageIds = $this->metadataTransformer->getImageIds($xpath);
         $imageUrls = $this->metadataTransformer->getImageUrls($xpath);
         $graphics = $this->getGraphics($imageIds, $imageUrls);
-
         $solrDocument = $this->getTextVersions($file, $graphics);
-        $transcription = $solrDocument->getTranscriptedText();
         $pagesTranscription = $solrDocument->getPageLevelTranscriptedText();
-        $editedText = $solrDocument->getEditedText();
         $pagesEdited = $solrDocument->getPageLevelEditedText();
         $pagesGndsUuids = $solrDocument->getPagesGndsUuids();
         $pagesNotes = $solrDocument->getPagesNotes();
@@ -617,102 +580,286 @@ class Indexer implements IndexerInterface
 
         if (!empty($id)) {
             $doc->id = $id;
-            $doc->doctype = $docType;
 
-            if (isset($shortTitle) && !empty($shortTitle)) {
-                $doc->short_title = $shortTitle;
+            if (in_array('doctype', $transformationFields)) {
+                $doc->doctype = $docType;
             }
 
-            if (isset($title) && !empty($title)) {
-                $doc->title = $title;
+            if (in_array('location', $transformationFields)) {
+                $location = $this->metadataTransformer->getLocation($xpath);
+
+                if (!empty($location)) {
+                    $doc->location = $location;
+                }
             }
 
-            if (isset($originPlace) && !empty($originPlace)) {
-                $doc->origin_place = $originPlace;
+            if (in_array('short_title', $transformationFields)) {
+                $shortTitle = $this->metadataTransformer->getShortTitle($xpath);
+
+                if (!empty($shortTitle)) {
+                    $doc->short_title = $shortTitle;
+                }
             }
 
-            if (isset($author) && !empty($author)) {
-                $doc->author = $author;
+            if (in_array('title', $transformationFields)) {
+                $title = $this->metadataTransformer->getTitle($xpath);
+
+                if (!empty($title)) {
+                    $doc->title = $title;
+                }
             }
 
-            if (isset($recipient) && !empty($recipient)) {
-                $doc->recipient = $recipient;
+            if (in_array('origin_place', $transformationFields)) {
+                $originPlace = $this->metadataTransformer->getOriginPlace($xpath);
+
+                if (!empty($originPlace)) {
+                    $doc->origin_place = $originPlace;
+                }
             }
 
-            if (isset($originDate) && !empty($originDate)) {
-                $doc->article_pub_date = $originDate;
+            if (in_array('author', $transformationFields)) {
+                $author = $this->metadataTransformer->getAuthor($xpath);
+
+                if (!empty($author)) {
+                    $doc->author = $author;
+                }
             }
 
-            if (isset($destinationPlace) && !empty($destinationPlace)) {
-                $doc->destination_place = $destinationPlace;
+            if (in_array('editor', $transformationFields)) {
+                $editor = $this->metadataTransformer->getEditor($xpath);
+
+                if (!empty($editor)) {
+                    $doc->editor = $editor;
+                }
             }
 
-            if (isset($license) && !empty($license)) {
-                $doc->license = $license;
+            if (in_array('publisher', $transformationFields)) {
+                $publisher = $this->metadataTransformer->getDocumentPublisher($xpath);
+
+                if (!empty($publisher)) {
+                    $doc->publisher = $publisher;
+                }
             }
 
-            if (isset($language) && !empty($language)) {
-                $doc->language = $language;
+            if (in_array('recipient', $transformationFields)) {
+                $recipient = $this->metadataTransformer->getRecipient($xpath);
+
+                if (!empty($recipient)) {
+                    $doc->recipient = $recipient;
+                }
             }
 
-            if (isset($reference) && !empty($reference)) {
-                $doc->reference = $reference;
+            if (in_array('origin_date', $transformationFields)) {
+                $originDate = $this->metadataTransformer->getOriginDate($xpath);
+
+                if (empty($originDate)) {
+                    $doc->origin_date = $originDate;
+                }
             }
 
-            if (isset($response) && !empty($response)) {
-                $doc->response = $response;
+            if (in_array('destination_place', $transformationFields)) {
+                $destinationPlace = $this->metadataTransformer->getDestinationPlace($xpath);
+
+                if (!empty($destinationPlace)) {
+                    $doc->destination_place = $destinationPlace;
+                }
             }
 
-            if (isset($relatedItems) && !empty($relatedItems)) {
-                $doc->related_items = $relatedItems;
+            if (in_array('license', $transformationFields)) {
+                $license = $this->metadataTransformer->getLicense($xpath);
+
+                if (!empty($license)) {
+                    $license = trim(preg_replace('/\s+/', ' ', $license));
+                    $doc->license = $license;
+                }
             }
 
-            if (isset($institution) && !empty($institution)) {
-                $doc->institution = $institution;
+            if (in_array('language', $transformationFields)) {
+                $language = $this->metadataTransformer->getLanguage($xpath);
+
+                if (!empty($language)) {
+                    $doc->language = $language;
+                }
             }
 
-            if (isset($sourceDescription) && !empty($sourceDescription)) {
-                $doc->source_description = $sourceDescription;
+            if (in_array('reference', $transformationFields)) {
+                $reference = $this->metadataTransformer->getReference($xpath);
+
+                if (!empty($reference)) {
+                    $doc->reference = $reference;
+                }
             }
 
-            if (isset($publicationDate) && !empty($publicationDate)) {
-                $doc->article_pub_date = $publicationDate;
+            if (in_array('response', $transformationFields)) {
+                $response = $this->metadataTransformer->getResponse($xpath);
+
+                if (!empty($response)) {
+                    $doc->response = $response;
+                }
             }
 
-            if (isset($fulltext) && !empty($fulltext)) {
-                $doc->fulltext = $fulltext;
+            if (in_array('related_items', $transformationFields)) {
+                $relatedItems = $this->metadataTransformer->getRelatedItems($xpath);
+
+                if (!empty($relatedItems)) {
+                    $doc->related_items = $relatedItems;
+                }
             }
 
-            if (isset($numberOfPages) && !empty($numberOfPages)) {
-                $doc->number_of_pages = $numberOfPages;
+            if (in_array('institution', $transformationFields)) {
+                $repository = $this->metadataTransformer->getRepository($xpath);
+                $institution = $this->metadataTransformer->getInstitution($xpath);
+                $settlement = $this->metadataTransformer->getSettlement($xpath);
+                $country = $this->metadataTransformer->getCountry($xpath);
+
+                $institutionDetail = '';
+                if (!empty($repository)) {
+                    $institutionDetail .= $repository;
+                }
+                if (!empty($institution)) {
+                    $institutionDetail .= ', '.$institution;
+                }
+                if (!empty($settlement)) {
+                    $institutionDetail .= ', '.$settlement;
+                }
+                if (!empty($country)) {
+                    $institutionDetail .= ' ('.$country.')';
+                }
+                if (!empty($institutionDetail)) {
+                    $institution = trim(preg_replace('/\s+/', ' ', $institutionDetail));
+                }
+
+                if (!empty($institution)) {
+                    $doc->institution = $institution;
+                }
             }
 
-            if (isset($gndKeywords) && !empty($gndKeywords)) {
-                $doc->gnd_keyword = $gndKeywords;
+            if (in_array('source_description', $transformationFields)) {
+                $sourceDescription = $this->metadataTransformer->getSourceDescription($xpath);
+
+                if (!empty($sourceDescription)) {
+                    $doc->source_description = $sourceDescription;
+                }
             }
 
-            if (isset($freeKeywords) && !empty($freeKeywords)) {
-                $doc->free_keyword = $freeKeywords;
+            if (in_array('publication_date', $transformationFields)) {
+                $publicationDate = $this->metadataTransformer->getPublicationDate($xpath);
+
+                if (!empty($publicationDate)) {
+                    $doc->publication_date = $publicationDate;
+                }
             }
 
-            if (isset($shelfmark) && !empty($shelfmark)) {
-                $doc->shelfmark = $shelfmark;
+            if (in_array('publication_place', $transformationFields)) {
+                $publicationPlace = $this->metadataTransformer->getPublicationPlace($xpath);
+
+                if (!empty($publicationPlace)) {
+                    $doc->publication_place = $publicationPlace;
+                }
             }
 
-            if (isset($scriptSource) && !empty($scriptSource)) {
-                $doc->script_source = $scriptSource;
+            if (in_array('volume_part', $transformationFields)) {
+                $volumePart = $this->metadataTransformer->getVolumePart($xpath);
+
+                if (!empty($volumePart)) {
+                    $doc->volume_part = $volumePart;
+                }
             }
 
-            if (isset($writers) && !empty($writers)) {
-                $doc->writer = $writers;
+            if (in_array('marker', $transformationFields)) {
+                $marker = $this->metadataTransformer->getMarker($xpath);
+
+                if (!empty($marker)) {
+                    $doc->marker = $marker;
+                }
             }
 
-            if (isset($imageIds) && !empty($imageIds)) {
-                $doc->image_ids = $imageIds;
+            if (in_array('fulltext', $transformationFields)) {
+                $fulltext = $this->getFulltext($xpath);
+
+                if (!empty($fulltext)) {
+                    $doc->fulltext = $fulltext;
+                }
             }
 
-            if (isset($imageUrls) && !empty($imageUrls)) {
-                $doc->image_urls = $imageUrls;
+            if (in_array('number_of_pages', $transformationFields)) {
+                $numberOfPages = $this->metadataTransformer->getNumberOfPages($xpath);
+
+                if (!empty($numberOfPages)) {
+                    $doc->number_of_pages = $numberOfPages;
+                }
+            }
+
+            if (in_array('gnd_keywords', $transformationFields)) {
+                $gndKeywords = $this->metadataTransformer->getGndKeywords($xpath);
+
+                if (!empty($gndKeywords)) {
+                    $doc->gnd_keyword = $gndKeywords;
+                }
+            }
+
+            if (in_array('free_keywords', $transformationFields)) {
+                $freeKeywords = $this->metadataTransformer->getFreeKeywords($xpath);
+
+                if (!empty($freeKeywords)) {
+                    $doc->free_keyword = $freeKeywords;
+                }
+            }
+
+            if (in_array('shelfmark', $transformationFields)) {
+                $shelfmark = $this->metadataTransformer->getShelfmark($xpath);
+
+                if (!empty($shelfmark)) {
+                    $doc->shelfmark = $shelfmark;
+                }
+            }
+
+            if (in_array('script_source', $transformationFields)) {
+                $scriptSource = $this->metadataTransformer->getScriptSource($xpath);
+
+                if (!empty($scriptSource)) {
+                    $doc->script_source = $scriptSource;
+                }
+            }
+
+            if (in_array('writers', $transformationFields)) {
+                $writers = $this->metadataTransformer->getWriters($xpath);
+
+                if (!empty($writers)) {
+                    $doc->writer = $writers;
+                }
+            }
+
+            if (in_array('image_ids', $transformationFields)) {
+                if (!empty($imageIds)) {
+                    $doc->image_ids = $imageIds;
+                }
+            }
+
+            if (in_array('image_urls', $transformationFields)) {
+                if (!empty($imageUrls)) {
+                    $doc->image_urls = $imageUrls;
+                }
+            }
+
+            if (in_array('transcripted_text', $transformationFields)) {
+                $transcription = $solrDocument->getTranscriptedText();
+
+                if (!empty($transcription)) {
+                    $doc->transcripted_text = $transcription;
+                }
+            }
+
+            if (in_array('edited_text', $transformationFields)) {
+                $editedText = $solrDocument->getEditedText();
+
+                if (!empty($editedText)) {
+                    if (str_contains($editedText, '-')) {
+                        $editedText = $this->removeHyphen($editedText);
+                    }
+
+                    $doc->edited_text = $editedText;
+                }
             }
 
             if (isset($documentEntities) && !empty($documentEntities)) {
@@ -721,18 +868,6 @@ class Indexer implements IndexerInterface
 
             if (isset($notes) && !empty($notes)) {
                 $doc->notes = $notes;
-            }
-
-            if (isset($transcription) && !empty($transcription)) {
-                $doc->transcripted_text = $transcription;
-            }
-
-            if (isset($editedText) && !empty($editedText)) {
-                if (str_contains($editedText, '-')) {
-                    $editedText = $this->removeHyphen($editedText);
-                }
-
-                $doc->edited_text = $editedText;
             }
 
             if (!empty($numberOfPages) && $numberOfPages && $this->indexPages) {

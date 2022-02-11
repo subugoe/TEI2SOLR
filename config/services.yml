@@ -75,6 +75,7 @@ services:
           - '%env(INDEX_ENTITIES)%'
           - '%env(INDEX_Doctype_NOTES)%'
           - '%env(GND_API)%'
+          - '%env(TRANSFORMATION_FIELDS)%'
 
   Subugoe\TEI2SOLRBundle\Transform\MetadataTransformer:
     calls:
