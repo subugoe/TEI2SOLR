@@ -4,6 +4,9 @@ parameters:
     tei_sample_dir: '%kernel.project_dir%/data/sampletei/'
     lit_dir: '%kernel.project_dir%/data/lit/'
     gnd_files_dir: '%kernel.project_dir%/data/gnd-files/'
+    wikidata_files_die:  '%kernel.project_dir%/data/wikidata-files/'
+    wikipedia_files_die:  '%kernel.project_dir%/data/wikipedia-files/'
+    geoname_files_dir: '%kernel.project_dir%/data/geoname-files/'
     tei_import_log_file: '%kernel.project_dir%/data/log/'
     document_languages:
         eng: Englisch
@@ -69,13 +72,17 @@ services:
           - '%tei_sample_dir%'
           - '%lit_dir%'
           - '%gnd_files_dir%'
+          - '%geoname_files_dir%'
+          - '%wikidata_files_die%'
+          - '%wikipedia_files_die%'
           - '%tei_import_log_file%'
           - '%literatur_data_elements%'
           - '%env(INDEX_PAGES)%'
           - '%env(INDEX_ENTITIES)%'
-          - '%env(INDEX_Doctype_NOTES)%'
+          - '%env(INDEX_DOCTYPE_NOTES)%'
           - '%env(GND_API)%'
           - '%env(TRANSFORMATION_FIELDS)%'
+          - '%env(INDEX_WIKIDATA)%'
 
   Subugoe\TEI2SOLRBundle\Transform\MetadataTransformer:
     calls:

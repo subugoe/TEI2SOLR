@@ -14,14 +14,20 @@ interface MetadataTransformerInterface
     public function getMarker(DOMXPath $xpath): string;
     public function getCountry(DOMXPath $xpath): string;
     public function getDestinationPlace(DOMXPath $xpath): string;
+    public function getDoctypeNotes(DOMXPath $xpath, string $id): array;
+    public function getEntities(DOMXPath $xpath): array;
     public function getFreeKeywords(DOMXPath $xpath): array;
+    public function getFulltext(DOMXPath $xpath): string;
     public function getGndKeywords(DOMXPath $xpath): array;
     public function getNumberOfPages(DOMXPath $xpath): ?int;
+    public function getGraphics(array $imageIds, array $imageUrls): array;
+    public function getId(DOMXPath $xpath): string;
     public function getImageIds(DOMXPath $xpath): array;
     public function getImageUrls(DOMXPath $xpath): array;
     public function getInstitution(DOMXPath $xpath): string;
     public function getLanguage(DOMXPath $xpath): string;
     public function getLicense(DOMXPath $xpath): string;
+    public function getNodeChilds($pagesNode, &$ele): array;
     public function getOriginDate(DOMXPath $xpath): string;
     public function getOriginPlace(DOMXPath $xpath): string;
     public function getPublicationDate(DOMXPath $xpath): string;
@@ -37,4 +43,6 @@ interface MetadataTransformerInterface
     public function getSourceDescription(DOMXPath $xpath): string;
     public function getTitle(DOMXPath $xpath): string;
     public function getWriters(DOMXPath $xpath): array;
+    public function getLocation(DOMXPath $xpath): string;
+
 }

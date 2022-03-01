@@ -270,6 +270,7 @@ class MetadataTransformer implements MetadataTransformerInterface
     public function getGraphics(array $imageIds, array $imageUrls): array
     {
         $graphics = [];
+
         if (!empty($imageIds) && !empty($imageUrls)) {
             foreach ($imageIds as $key => $imageId) {
                 if (!empty($imageId) && !empty($imageUrls[$key])) {
@@ -368,7 +369,7 @@ class MetadataTransformer implements MetadataTransformerInterface
         return $license;
     }
 
-    public function getNodeChilds($pagesNode, &$ele)
+    public function getNodeChilds($pagesNode, &$ele): array
     {
         if (isset($pagesNode->childNodes)) {
             foreach ($pagesNode->childNodes as $childNode) {
@@ -650,9 +651,10 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getSourceDescription(DOMXPath $xpath): string
     {
+        $sourceDescriptionNodeList = $xpath->query('//tei:sourceDesc/descendant::text()');
+
         $sourceDescription = '';
 
-        $sourceDescriptionNodeList = $xpath->query('//tei:sourceDesc/descendant::text()');
         foreach ($sourceDescriptionNodeList as $sourceDescriptionNode) {
             $sourceDescription .= $sourceDescriptionNode->data;
         }
@@ -677,7 +679,9 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         if (!isset($title)) {
             $titleNodeList = $xpath->query('//tei:title[@type = "desc"]/descendant::text()');
+
             $title = '';
+
             foreach ($titleNodeList as $k => $titleNode) {
                 $title .= $titleNode->data;
             }
@@ -685,6 +689,14 @@ class MetadataTransformer implements MetadataTransformerInterface
             $title = trim(preg_replace('/\s+/', ' ', $title));
         }
 
+        if (empty($title)) {
+            $titleNodeList = $xpath->query('//tei:title/text()');
+
+            if (null !== $titleNodeList->item(0)) {
+                $title = $titleNodeList->item(0)->data;
+                $title = trim(preg_replace('/\s+/', ' ', $title));
+            }
+        }
         return $title;
     }
 
@@ -717,7 +729,7 @@ class MetadataTransformer implements MetadataTransformerInterface
         return $writers;
     }
 
-    public function getLocation(DOMXPath $xpath)
+    public function getLocation(DOMXPath $xpath): string
     {
         $locationNode = $xpath->query('//tei:title[@level = "a"]//tei:name/text()');
 

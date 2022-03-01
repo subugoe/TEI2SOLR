@@ -36,7 +36,7 @@ class Importer implements ImporterInterface
         $this->gitlabTeiBranchName = $gitlabTeiBranchName;
     }
 
-    public function importLiterature(): void
+    private function importLiterature(): void
     {
         $filesystem = new Filesystem();
 
@@ -80,9 +80,11 @@ class Importer implements ImporterInterface
     {
         $this->importLiterature();
         $filesystem = new Filesystem();
+        
         if (!$filesystem->exists($this->teiDir)) {
             $filesystem->mkdir($this->teiDir);
         }
+
         $invalidTeiList = $this->getInvalidTeiList();
 
         for ($i = 1; $i <= 100; ++$i) {

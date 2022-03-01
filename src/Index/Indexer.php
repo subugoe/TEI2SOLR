@@ -14,6 +14,7 @@ use Subugoe\TEI2SOLRBundle\Service\EditedTextService;
 use Subugoe\TEI2SOLRBundle\Service\PreProcessingService;
 use Subugoe\TEI2SOLRBundle\Service\TranscriptionService;
 use Subugoe\TEI2SOLRBundle\Transform\MetadataTransformerInterface;
+use Symfony\Component\Filesystem\Exception\ExceptionInterface;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -24,7 +25,7 @@ class Indexer implements IndexerInterface
     private const LITERATURE_XPATH = '//tei:text//tei:body//tei:listBibl//tei:bibl';
     private const ABSTRACT_XPATH = '//tei:abstract';
     private const NOTES_XPATH = '//tei:text[@xml:lang="ger"]//tei:div//tei:div//tei:note';
-    private const GNDS_XPATH = '//tei:text[@xml:lang="ger"]|tei:text//tei:name';
+    private const GNDS_XPATH = '//tei:text//tei:name[@type="place"]';
     private const FULLTEXT_XPATH = '//tei:body//tei:div/descendant::text()';
     private const DOCUMENT_ID_XPATH = '//tei:text/@xml:id';
     private const DOCUMENT_ID_XPATH_ALT = '//tei:TEI/@xml:id';
@@ -45,6 +46,9 @@ class Indexer implements IndexerInterface
     private ?string $teiSampleDir = null;
     private ?string $litDir;
     private ?string $gndFilesDir;
+    private ?string $geonameFilesDir;
+    private ?string $wikidataFilesDir;
+    private ?string $wikipediaFilesDir;
     private ?string $teiImportLogFile;
     private ?array $literaturDataElements;
     private ?bool $indexPages;
@@ -52,6 +56,7 @@ class Indexer implements IndexerInterface
     private ?bool $indexDoctypeNotes;
     private ?string $gndApi;
     private ?string $transformationFields;
+    private ?string $indexWikidata;
 
     public function __construct(
         Client $client,
@@ -67,13 +72,16 @@ class Indexer implements IndexerInterface
         $this->metadataTransformer = $metadataTransformer;
     }
 
-    public function setConfigs(string $teiDir, string $teiSampleDir, string $litDir, string $gndFilesDir, string $teiImportLogFile, array $literaturDataElements, bool $indexPages, bool $indexEntities, bool $indexDoctypeNotes, string $gndApi,
-        string $transformationFields): void
+    public function setConfigs(string $teiDir, string $teiSampleDir, string $litDir, string $gndFilesDir, string $geonameFilesDir, string $wikidataFilesDir, string $wikipediaFilesDir, string $teiImportLogFile, array $literaturDataElements, bool $indexPages, bool $indexEntities, bool $indexDoctypeNotes, string $gndApi,
+        string $transformationFields, string $indexWikidata): void
     {
         $this->teiDir = $teiDir;
         $this->teiSampleDir = $teiSampleDir;
         $this->litDir = $litDir;
         $this->gndFilesDir = $gndFilesDir;
+        $this->geonameFilesDir = $geonameFilesDir;
+        $this->wikidataFilesDir = $wikidataFilesDir;
+        $this->wikipediaFilesDir = $wikipediaFilesDir;
         $this->teiImportLogFile = $teiImportLogFile;
         $this->literaturDataElements = $literaturDataElements;
         $this->indexPages = $indexPages;
@@ -81,6 +89,8 @@ class Indexer implements IndexerInterface
         $this->indexDoctypeNotes = $indexDoctypeNotes;
         $this->gndApi = $gndApi;
         $this->transformationFields = $transformationFields;
+        $this->indexWikidata = $indexWikidata;
+
     }
 
     public function deleteSolrIndex(): void
@@ -337,9 +347,10 @@ class Indexer implements IndexerInterface
         }
     }
 
-    public function addSampleTeiFileToProjectTeiFiles()
+    private function addSampleTeiFileToProjectTeiFiles()
     {
         $finderSample = new Finder();
+
         return $finderSample->files()->in($this->teiSampleDir);
     }
 
@@ -428,8 +439,10 @@ class Indexer implements IndexerInterface
 
     private function getAbstracts(DOMXPath $xpath): array
     {
-        $abstracts = [];
         $abstractNodes = $xpath->query(self::ABSTRACT_XPATH);
+
+        $abstracts = [];
+
         foreach ($abstractNodes as $abstractNode) {
             $abstracts[] = $abstractNode->nodeValue;
         }
@@ -439,9 +452,10 @@ class Indexer implements IndexerInterface
 
     private function getDoctypeNotes(DOMXPath $xpath, string $id): array
     {
+        $notesNodes = $xpath->query(self::NOTES_XPATH);
+
         $doctypeNotes = [];
 
-        $notesNodes = $xpath->query(self::NOTES_XPATH);
         if (is_iterable($notesNodes) && !empty($notesNodes)) {
             foreach ($notesNodes as $key => $notesNode) {
                 if (!empty($notesNodes->item(0)->nodeValue) && !empty($id)) {
@@ -454,11 +468,35 @@ class Indexer implements IndexerInterface
         return $doctypeNotes;
     }
 
+    private function getDocumentGnds(DOMXPath $xpath): array
+    {
+        $documentGndsNodes = $xpath->query(self::GNDS_XPATH);
+
+        $gnds = [];
+
+        foreach ($documentGndsNodes as $documentGndsNode) {
+            foreach ($documentGndsNode->attributes as $attribute) {
+                if (false !== stripos($attribute->nodeValue, 'gnd')) {
+                    if (!empty($attribute->nodeValue)) {
+                        $gndRemoveablePart = explode(':', $attribute->nodeValue)[0];
+                        $gnd = str_replace($gndRemoveablePart.':', '', $attribute->nodeValue);
+                        $gnds[] = $gnd;
+                    }
+                }
+            }
+
+
+        }
+
+        return array_unique($gnds);
+    }
+
     private function getEntities(DOMXPath $xpath): array
     {
         $entities = [];
 
         $documentGndsNodes = $xpath->query(self::GNDS_XPATH);
+
         foreach ($documentGndsNodes as $documentGndsNode) {
             if (is_iterable($documentGndsNode->childNodes)) {
                 $entityName = '';
@@ -494,7 +532,7 @@ class Indexer implements IndexerInterface
             }
         }
 
-        return $entities;
+        return array_unique($entities, SORT_REGULAR);
     }
 
     private function getFulltext(DOMXPath $xpath): string
@@ -560,6 +598,7 @@ class Indexer implements IndexerInterface
 
         $xpath = new DOMXPath($doc);
         $xpath->registerNamespace(self::NAMESPACE_PREFIX, self::TEI_NAMESPACE);
+
         $id = $this->getId($xpath);
         $abstracts = $this->getAbstracts($xpath);
         $docType = self::ARTICLE_DOC_TYPE;
@@ -575,6 +614,7 @@ class Indexer implements IndexerInterface
         $pagesDates = $solrDocument->getPagesDates();
         $pagesWorks = $solrDocument->getPagesWorks();
         $pagesAllAnnotationIds = $solrDocument->getAllAnnotationIds();
+
         $update = $this->client->createUpdate();
         $doc = $update->createDocument();
 
@@ -862,8 +902,12 @@ class Indexer implements IndexerInterface
                 }
             }
 
-            if (isset($documentEntities) && !empty($documentEntities)) {
-                $doc->entities = $documentEntities;
+            if (in_array('document_gnds', $transformationFields)) {
+                $documentGnds = $this->getDocumentGnds($xpath);
+
+                if (!empty($documentGnds)) {
+                    $doc->gnds = $documentGnds;
+                }
             }
 
             if (isset($notes) && !empty($notes)) {
@@ -945,6 +989,9 @@ class Indexer implements IndexerInterface
     {
         if (isset($entities) && is_iterable($entities)) {
             foreach ($entities as $entity) {
+                $latitudes = [];
+                $longitudes = [];
+
                 if (!empty($entity['gnd'])) {
                     $localFilePath = $this->gndFilesDir.$entity['gnd'].'.json';
                     if (!file_exists($localFilePath)) {
@@ -953,10 +1000,10 @@ class Indexer implements IndexerInterface
                             $fileContent = @file_get_contents($remoteFilePath, true);
 
                             if (false === $fileContent) {
-                                throw new Exception($localFilePath);
+                                throw new Exception($localFilePath . PHP_EOL);
                             }
                         } catch (Exception $e) {
-                            echo $e->getMessage();
+                            echo $e->getMessage() . PHP_EOL;
                         }
 
                         // TODO: better exception handling to not go here when remote file path failed
@@ -968,7 +1015,7 @@ class Indexer implements IndexerInterface
                             $gndArr = json_decode($fileContent);
                         }
                     } else {
-                        $gndArr = json_decode(file_get_contents($localFilePath));
+                        $gndArr = json_decode(@file_get_contents($localFilePath));
                     }
 
                     if (isset($gndArr->preferredName) && !empty($gndArr->preferredName)) {
@@ -994,9 +1041,60 @@ class Indexer implements IndexerInterface
                         $doc->alternatively_name = $variantNames;
                     }
 
+                    if (isset($gndArr->hasGeometry)) {
+                        foreach ($gndArr->hasGeometry as $gitem) {
+                            foreach ($gitem->asWKT as $asWKTitem) {
+                                preg_match('#\((.*?)\)#', $asWKTitem, $match);
+                                $coordinates = explode(' ', trim($match[1]));
+                                $latitudes[] = ltrim($coordinates[1], '+');
+                                $longitudes[] = ltrim($coordinates[0], '+');
+                            }
+                        }
+                    }
+
+                    if (isset($latitudes) && !empty($latitudes) && isset($longitudes) && !empty($longitudes)) {
+                        $doc->latitude = $latitudes;
+                        $doc->longitude = $longitudes;
+                    }
+
+                    if ($this->indexWikidata && isset($gndArr->sameAs) && !empty($gndArr->sameAs)) {
+                        foreach ($gndArr->sameAs as $k => $item) {
+                            if (isset($item->collection->name) && 'Wikidata' === $item->collection->name) {
+                                $wikidataId = array_reverse(explode('/', $item->id))[0];
+
+                                if (!empty($wikidataId)) {
+                                    $doc->wikidata_id =  $wikidataId;
+                                }
+                            }
+                            elseif (str_contains($item->id, 'sws.geonames.org')) {
+                                $geonameId = array_reverse(explode('/', $item->id))[0];
+
+                                if (!empty($geonameId)) {
+                                    $doc->geoname_id =  $geonameId;
+                                }
+                            }
+                            elseif (isset($item->collection->abbr) && 'dewiki' === $item->collection->abbr) {
+                                $wikipedia = $item->id;
+                            }
+                        }
+                    }
+
+                    if (isset($wikipedia) && !empty($wikipedia)) {
+                        $doc->de_wikipedia_url =  $wikipedia;
+                    } else {
+                        if (isset($gndArr->wikipedia) && !empty($gndArr->wikipedia)) {
+                            foreach ($gndArr->wikipedia as $k => $item) {
+                                if (str_contains($item->id, 'de.wikipedia.org')) {
+                                    $doc->wikidata_id = $item->id;
+                                }
+                            }
+                        }
+                    }
+
                     $update->addDocument($doc);
                     $update->addCommit();
                     $this->client->execute($update);
+
                 }
             }
         }
