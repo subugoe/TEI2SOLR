@@ -10,5 +10,7 @@ interface IndexerInterface
 
     public function getTextVersions(string $filePath, array $graphics = []): SolrDocument;
 
+    public function literatureToSolr(): void;
+
     public function teiTosolr(bool $importSampleTei): void;
 }
