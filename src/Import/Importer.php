@@ -96,9 +96,9 @@ class Importer implements ImporterInterface
 
                     foreach ($files as $file) {
                         if ([] !== $invalidTeiList && !in_array(trim($file['name']), $invalidTeiList)) {
-
                             if ('.gitkeep' !== $file['name']) {
-                                $teiFileUrl = $this->gitlabProcessedTeiRepoUrl.$file['name'].'?access_token='.$this->gitlabRepoToken.'&ref='.$this->gitlabTeiBranchName;
+                                $fileName = urlencode($file['name']);
+                                $teiFileUrl = $this->gitlabProcessedTeiRepoUrl.$fileName.'?access_token='.$this->gitlabRepoToken.'&ref='.$this->gitlabTeiBranchName;
                                 $fileData = @file_get_contents($teiFileUrl);
                                 if (is_string($fileData)) {
                                     $fileData = json_decode($fileData, true);

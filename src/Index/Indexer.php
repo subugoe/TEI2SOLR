@@ -910,6 +910,14 @@ class Indexer implements IndexerInterface
                 }
             }
 
+            if (in_array('project', $transformationFields)) {
+                $project = $this->metadataTransformer->getProject($xpath);
+
+                if (!empty($project)) {
+                    $doc->project = $project;
+                }
+            }
+
             if (isset($notes) && !empty($notes)) {
                 $doc->notes = $notes;
             }
