@@ -101,6 +101,20 @@ class MetadataTransformer implements MetadataTransformerInterface
         return $volumePart;
     }
 
+    public function getProject(DOMXPath $xpath): string
+    {
+        $projectNode = $xpath->query('//tei:title[@level = "s"]/text()');
+
+        $project = '';
+
+        if (!empty($projectNode->item(0))) {
+            $project = $projectNode->item(0)->data;
+            $project = trim(preg_replace('/\s+/', ' ', $project));
+        }
+
+        return $project;
+    }
+
     public function getMarker(DOMXPath $xpath): string
     {
         $markerNodes = $xpath->query('//tei:respStmt//tei:name[@type="person"]');
