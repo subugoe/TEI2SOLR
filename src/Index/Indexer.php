@@ -56,7 +56,8 @@ class Indexer implements IndexerInterface
     private ?bool $indexDoctypeNotes;
     private ?string $gndApi;
     private ?string $transformationFields;
-    private ?string $indexWikidata;
+    private ?bool $indexWikidata;
+    private ?bool $addArticlesTOGnd;
 
     public function __construct(
         Client $client,
@@ -73,7 +74,7 @@ class Indexer implements IndexerInterface
     }
 
     public function setConfigs(string $teiDir, string $teiSampleDir, string $litDir, string $gndFilesDir, string $geonameFilesDir, string $wikidataFilesDir, string $wikipediaFilesDir, string $teiImportLogFile, array $literaturDataElements, bool $indexPages, bool $indexEntities, bool $indexDoctypeNotes, string $gndApi,
-        string $transformationFields, string $indexWikidata): void
+        string $transformationFields, bool $indexWikidata, bool $addArticlesTOGnd): void
     {
         $this->teiDir = $teiDir;
         $this->teiSampleDir = $teiSampleDir;
@@ -90,7 +91,7 @@ class Indexer implements IndexerInterface
         $this->gndApi = $gndApi;
         $this->transformationFields = $transformationFields;
         $this->indexWikidata = $indexWikidata;
-
+        $this->addArticlesTOGnd = $addArticlesTOGnd;
     }
 
     public function deleteSolrIndex(): void
@@ -413,6 +414,10 @@ class Indexer implements IndexerInterface
 
                 libxml_clear_errors();
             }
+        }
+
+        if ($this->addArticlesTOGnd) {
+            $this->addArticlesToGnd();
         }
 
         try {
@@ -993,6 +998,54 @@ class Indexer implements IndexerInterface
         }
     }
 
+    private function addArticlesToGnd(): void
+    {
+        $gndQuery = sprintf('doctype:%s', 'entity');
+        $gndSelect = $this->client->createSelect()
+            ->setQuery($gndQuery)
+            ->setRows(1000);
+        $gndDocuments = $this->client->select($gndSelect)->getDocuments();
+
+        if (!empty($gndDocuments) && is_iterable($gndDocuments)) {
+            foreach ($gndDocuments as $key => $gndDocument) {
+                $articleQuery = sprintf('doctype:%s AND gnds:%s', 'article', $gndDocument['id']);
+                $articleSelect = $this->client->createSelect()
+                    ->setQuery($articleQuery)
+                    ->setFields(['id'])
+                    ->setRows(1000);
+                $articleDocuments = $this->client->select($articleSelect)->getDocuments();
+
+                if (!empty($articleDocuments) && is_iterable($articleDocuments)) {
+                    $articles = [];
+
+                    foreach ($articleDocuments as $key => $articleDocument) {
+                        $articles[] = $articleDocument['id'];
+                    }
+
+                    $update = $this->client->createUpdate();
+                    $gndDoc = $update->createDocument();
+                    $gndDoc->id = $gndDocument['id'];
+                    $gndDoc->doctype = $gndDocument['doctype'];
+                    $gndDoc->entity_name = $gndDocument['entity_name'];
+                    $gndDoc->entitytype = $gndDocument['entitytype'];
+                    $gndDoc->mostly_used_name = $gndDocument['mostly_used_name'];
+                    $gndDoc->alternatively_name = $gndDocument['alternatively_name'];
+                    $gndDoc->latitude = $gndDocument['latitude'];
+                    $gndDoc->longitude = $gndDocument['longitude'];
+                    $gndDoc->geoname_id = $gndDocument['geoname_id'];
+                    $gndDoc->wikidata_id = $gndDocument['wikidata_id'];
+                    $gndDoc->wikidata_id = $gndDocument['wikidata_id'];
+                    $gndDoc->wikidata_url = $gndDocument['wikidata_url'];
+                    $gndDoc->de_wikipedia_url = $gndDocument['de_wikipedia_url'];
+                    $gndDoc->articles = $articles;
+                    $update->addDocument($gndDoc);
+                    $update->addCommit();
+                    $this->client->execute($update);
+                }
+            }
+        }
+    }
+
     private function indexEntities(array $entities): void
     {
         if (isset($entities) && is_iterable($entities)) {
@@ -1002,6 +1055,7 @@ class Indexer implements IndexerInterface
 
                 if (!empty($entity['gnd'])) {
                     $localFilePath = $this->gndFilesDir.$entity['gnd'].'.json';
+
                     if (!file_exists($localFilePath)) {
                         $remoteFilePath = $this->gndApi.$entity['gnd'].'.json';
                         try {
@@ -1016,6 +1070,7 @@ class Indexer implements IndexerInterface
 
                         // TODO: better exception handling to not go here when remote file path failed
                         $gndArr = [];
+
                         if ($fileContent) {
                             $filesystem = new Filesystem();
                             $filesystem->dumpFile($localFilePath, $fileContent);
