@@ -63,7 +63,10 @@ services:
           - '%env(GITLAB_LIT_REPO_URL)%'
           - '%env(GITLAB_PROCESSED_LIT_REPO_URL)%'
           - '%env(GITLAB_TEI_BRANCH_NAME)%'
-
+          - '%env(TEI_FOLDERS_TO_BE_IMPORTED)%'
+          - '%env(TEI_FOLDERS_WITH_FILES)%'
+          - '%env(GITLAB_REPO_TREE_OFFSET)%'
+              
   Subugoe\TEI2SOLRBundle\Index\Indexer:
     calls:
       - method: 'setConfigs'
@@ -100,4 +103,9 @@ services:
           - '%env(IMPORT_TEI_FILES)%'
           - '%env(LITERATURE_TO_SOLR)%'
           - '%env(TEI_TO_SOLR)%'
+          - '%env(MULTIPEL_FOLDER_IMPORT)%'
+
+
+
+
 

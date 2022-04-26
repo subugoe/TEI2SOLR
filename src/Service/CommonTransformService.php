@@ -47,8 +47,14 @@ class CommonTransformService
 
     public function transformAllChildren(DOMNode $teiEl, DOMNode $htmlEl, HTMLDocument $doc): DOMNode
     {
+        $addSpace = false;
+
+        if ('name' === $teiEl->nodeName && 'forename' === $teiEl->getAttribute('type')) {
+            $addSpace = true;
+        }
+
         foreach ($teiEl->childNodes as $child) {
-            $transformed = $this->transformElement($child, $doc);
+            $transformed = $this->transformElement($child, $doc, $addSpace);
             if ($transformed) {
                 $htmlEl->appendChild($transformed);
             }
@@ -57,11 +63,18 @@ class CommonTransformService
         return $htmlEl;
     }
 
-    public function transformElement(DOMNode $teiEl, HTMLDocument $doc): ?DOMNode
+    public function transformElement(DOMNode $teiEl, HTMLDocument $doc, bool $addSpace = false): ?DOMNode
     {
         $methodName = 'handle'.trim(ucfirst($teiEl->nodeName), '#');
+
         if (method_exists($this, $methodName)) {
-            $htmlEl = $this->{$methodName}($teiEl, $doc);
+            if ($addSpace && 'handletext' === $methodName) {
+                $htmlEl = $this->{$methodName}($teiEl, $doc, $addSpace);
+            } else {
+                $htmlEl = $this->{$methodName}($teiEl, $doc);
+            }
+
+
         } else {
             $htmlEl = $doc->span();
         }
@@ -256,9 +269,11 @@ class CommonTransformService
         return $htmlEl;
     }
 
-    protected function handleText(DOMNode $el, HTMLDocument $doc): DOMNode
+    protected function handleText(DOMNode $el, HTMLDocument $doc, bool $addSpace = false): DOMNode
     {
-        return $doc->text($el->textContent);
+        $textContent = (!$addSpace) ? $el->textContent : $el->textContent.' ';
+
+        return $doc->text($textContent);
     }
 
     protected function handleTextCriticalAttributes(DOMNode $teiEl, string $comment, HTMLDocument $doc)

@@ -20,6 +20,7 @@ class SolrIndexing extends Command
     private IndexerInterface $indexer;
     private ?bool $literatureToSolr;
     private ?bool $teiToSolr;
+    private ?bool $multipelFolderImport;
 
     public function __construct(ImporterInterface $importer, IndexerInterface $indexer)
     {
@@ -28,12 +29,13 @@ class SolrIndexing extends Command
         $this->indexer = $indexer;
     }
 
-    public function setConfigs(bool $importSampleTei, bool $importTeiFiles, bool $literatureToSolr, bool $teiToSolr): void
+    public function setConfigs(bool $importSampleTei, bool $importTeiFiles, bool $literatureToSolr, bool $teiToSolr, bool $multipelFolderImport): void
     {
         $this->importSampleTei = $importSampleTei;
         $this->importTeiFiles = $importTeiFiles;
         $this->literatureToSolr = $literatureToSolr;
         $this->teiToSolr = $teiToSolr;
+        $this->multipelFolderImport = $multipelFolderImport;
     }
 
     /**
@@ -53,7 +55,11 @@ class SolrIndexing extends Command
         $output->writeln('Start solr indexing.');
 
         if ($this->importTeiFiles) {
-            $this->importer->importTeiFiles();
+            if ($this->multipelFolderImport) {
+                $this->importer->importMultipelFolderTeiFiles();
+            } else {
+                $this->importer->importTeiFiles();
+            }
         }
 
         if ($this->importSampleTei) {
