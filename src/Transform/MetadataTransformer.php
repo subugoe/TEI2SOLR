@@ -12,16 +12,19 @@ class MetadataTransformer implements MetadataTransformerInterface
     private RouterInterface $router;
     private ?string $mainDomain;
     private ?array $documentLanguages;
+    private ?int $handleAuthorName;
 
     public function __construct(RouterInterface $router)
     {
         $this->router = $router;
     }
 
-    public function setConfigs(string $mainDomain, array $documentLanguages): void
+    public function setConfigs(string $mainDomain, array $documentLanguages, int $handleAuthorName): void
     {
         $this->mainDomain = $mainDomain;
         $this->documentLanguages = $documentLanguages;
+        $this->handleAuthorName = $handleAuthorName;
+
     }
 
     public function getAuthor(DOMXPath $xpath): string|array
@@ -39,13 +42,24 @@ class MetadataTransformer implements MetadataTransformerInterface
             $authorNodes = $xpath->query('//tei:titleStmt//tei:author//tei:name[@type="person"]');
 
             $author = [];
-
             foreach ($authorNodes as $authorNode) {
-                $author[] = trim(preg_replace('/\s+/', ' ', $authorNode->nodeValue));
+                $authorFullname = '';
+
+                foreach ($authorNode->childNodes as $key => $authorChildNode) {
+                    if ('name' === $authorChildNode->nodeName) {
+                        $authorFullname .= $authorChildNode->nodeValue.',';
+                    }
+                }
+
+                if ($this->handleAuthorName) {
+                    $authorFullname = implode(', ', array_reverse(explode(',', trim($authorFullname, ','))));
+                }
+
+                $author[] = $authorFullname;
             }
         }
 
-        return $author;
+            return $author;
     }
 
     public function getEditor(DOMXPath $xpath): string|array
