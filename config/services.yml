@@ -94,6 +94,7 @@ services:
         arguments:
           - '%env(MAIN_DOMAIN)%'
           - '%document_languages%'
+          - '%env(HANDLE_AUTHOR_NAME)%'
 
   Subugoe\TEI2SOLRBundle\Command\SolrIndexing:
     calls:
