@@ -469,7 +469,6 @@ class MetadataTransformer implements MetadataTransformerInterface
             if ($publicationDateNode->item(0)) {
                 $publicationDate = $publicationDateNode->item(0)->nodeValue;
             }
-
         }
 
         return $publicationDate;
@@ -769,5 +768,23 @@ class MetadataTransformer implements MetadataTransformerInterface
         }
 
         return $location;
+    }
+
+    public function getDocumentOwnGNDs(DOMXPath $xpath): ?array
+    {
+        $documentOwnGNDsNodes = $xpath->query('//tei:titleStmt//tei:title[@level = "a"]//tei:name');
+
+        $documentOwnGNDs = [];
+
+        foreach ($documentOwnGNDsNodes as $documentOwnGNDsNode) {
+            foreach ($documentOwnGNDsNode->attributes as $attribute)
+                if ('ref' === $attribute->nodeName) {
+                    $gnd = explode(':', $attribute->nodeValue)[1];
+                    $documentOwnGNDs[] = $gnd;
+                    unset($gnd);
+                }
+        }
+
+        return $documentOwnGNDs;
     }
 }
