@@ -923,6 +923,14 @@ class Indexer implements IndexerInterface
                 }
             }
 
+            if (in_array('document_own_gnd', $transformationFields)) {
+                $documentOwnGnd = $this->metadataTransformer->getDocumentOwnGNDs($xpath);
+
+                if (!empty($documentOwnGnd)) {
+                    $doc->article_own_gnds = $documentOwnGnd;
+                }
+            }
+
             if (isset($notes) && !empty($notes)) {
                 $doc->notes = $notes;
             }

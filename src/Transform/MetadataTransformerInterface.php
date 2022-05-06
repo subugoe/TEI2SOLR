@@ -44,5 +44,5 @@ interface MetadataTransformerInterface
     public function getTitle(DOMXPath $xpath): string;
     public function getWriters(DOMXPath $xpath): array;
     public function getLocation(DOMXPath $xpath): string;
-
+    public function getDocumentOwnGNDs(DOMXPath $xpath): ?array;
 }
