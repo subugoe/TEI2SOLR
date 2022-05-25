@@ -787,4 +787,30 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         return $documentOwnGNDs;
     }
+
+    public function getPageFrom(DOMXPath $xpath): int
+    {
+        $pageFromNode = $xpath->query('//tei:biblScope/@from');
+
+        $pageFrom = '';
+
+        if ($pageFromNode->item(0)) {
+            $pageFrom = intval($pageFromNode->item(0)->nodeValue);
+        }
+
+        return $pageFrom;
+    }
+
+    public function getPageTo(DOMXPath $xpath): int
+    {
+        $pageToNode = $xpath->query('//tei:biblScope/@to');
+
+        $pageTo = '';
+
+        if ($pageToNode->item(0)) {
+            $pageTo = intval($pageToNode->item(0)->nodeValue);
+        }
+
+        return $pageTo;
+    }
 }

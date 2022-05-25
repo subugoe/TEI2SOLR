@@ -45,4 +45,6 @@ interface MetadataTransformerInterface
     public function getWriters(DOMXPath $xpath): array;
     public function getLocation(DOMXPath $xpath): string;
     public function getDocumentOwnGNDs(DOMXPath $xpath): ?array;
+    public function getPageFrom(DOMXPath $xpath): int;
+    public function getPageTo(DOMXPath $xpath): int;
 }
