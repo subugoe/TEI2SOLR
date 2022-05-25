@@ -931,6 +931,19 @@ class Indexer implements IndexerInterface
                 }
             }
 
+            if (in_array('pages_count', $transformationFields)) {
+                $pageFrom = $this->metadataTransformer->getPageFrom($xpath);
+                $pageTo = $this->metadataTransformer->getPageTo($xpath);
+
+                if (!empty($pageFrom)) {
+                    $doc->page_from = $pageFrom;
+                }
+
+                if (!empty($pageTo)) {
+                    $doc->page_to = $pageTo;
+                }
+            }
+
             if (isset($notes) && !empty($notes)) {
                 $doc->notes = $notes;
             }
