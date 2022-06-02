@@ -59,7 +59,7 @@ class MetadataTransformer implements MetadataTransformerInterface
             }
         }
 
-            return $author;
+        return $author;
     }
 
     public function getEditor(DOMXPath $xpath): string|array
@@ -136,8 +136,11 @@ class MetadataTransformer implements MetadataTransformerInterface
         $marker = '';
 
         foreach ($markerNodes as $markerNode) {
-            $marker = trim(preg_replace('/\s+/', ' ', $markerNode->nodeValue));
+            $markerString = trim(preg_replace('/\s+/', ' ', $markerNode->nodeValue));
         }
+
+        $markerArr = explode(' ', $markerString);
+        $marker = implode(', ', array_reverse($markerArr));
 
         return $marker;
     }

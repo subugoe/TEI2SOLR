@@ -58,6 +58,7 @@ class Indexer implements IndexerInterface
     private ?string $transformationFields;
     private ?bool $indexWikidata;
     private ?bool $addArticlesTOGnd;
+    private ?bool $editedTextRemoveHyphen;
 
     public function __construct(
         Client $client,
@@ -74,7 +75,7 @@ class Indexer implements IndexerInterface
     }
 
     public function setConfigs(string $teiDir, string $teiSampleDir, string $litDir, string $gndFilesDir, string $geonameFilesDir, string $wikidataFilesDir, string $wikipediaFilesDir, string $teiImportLogFile, array $literaturDataElements, bool $indexPages, bool $indexEntities, bool $indexDoctypeNotes, string $gndApi,
-        string $transformationFields, bool $indexWikidata, bool $addArticlesTOGnd): void
+        string $transformationFields, bool $indexWikidata, bool $addArticlesTOGnd, bool $editedTextRemoveHyphen): void
     {
         $this->teiDir = $teiDir;
         $this->teiSampleDir = $teiSampleDir;
@@ -92,6 +93,7 @@ class Indexer implements IndexerInterface
         $this->transformationFields = $transformationFields;
         $this->indexWikidata = $indexWikidata;
         $this->addArticlesTOGnd = $addArticlesTOGnd;
+        $this->editedTextRemoveHyphen = $editedTextRemoveHyphen;
     }
 
     public function deleteSolrIndex(): void
@@ -899,7 +901,7 @@ class Indexer implements IndexerInterface
                 $editedText = $solrDocument->getEditedText();
 
                 if (!empty($editedText)) {
-                    if (str_contains($editedText, '-')) {
+                    if (str_contains($editedText, '-') && $this->editedTextRemoveHyphen) {
                         $editedText = $this->removeHyphen($editedText);
                     }
 
