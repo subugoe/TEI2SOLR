@@ -87,6 +87,7 @@ services:
           - '%env(TRANSFORMATION_FIELDS)%'
           - '%env(INDEX_WIKIDATA)%'
           - '%env(ADD_ARTICLES_TO_GND)%'
+          - '%env(EDITED_TEXT_REMOVE_HYPHEN)%'
 
   Subugoe\TEI2SOLRBundle\Transform\MetadataTransformer:
     calls:
