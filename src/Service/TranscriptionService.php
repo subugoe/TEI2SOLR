@@ -34,6 +34,7 @@ class TranscriptionService extends CommonTransformService
         'superscript' => 'superscript',
         'underline' => 'underline',
         'wavyunderline' => 'underline',
+        'bold' => 'bold',
     ];
 
     protected function handleItem(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode

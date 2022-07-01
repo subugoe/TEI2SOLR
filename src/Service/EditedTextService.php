@@ -24,6 +24,7 @@ class EditedTextService extends CommonTransformService
         'superscript' => 'superscript',
         'underline' => 'letterspace',
         'wavyunderline' => 'letterspace',
+        'bold' => 'bold',
     ];
     private array $allAnnotationIds = [];
     private array $dates = [];
