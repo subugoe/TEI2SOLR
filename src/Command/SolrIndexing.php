@@ -79,6 +79,6 @@ class SolrIndexing extends Command
         $time /= 60;
         $output->writeln('Indexing process completed in '.$time.' minutes.');
 
-        return 1;
+        return Command::SUCCESS;
     }
 }
