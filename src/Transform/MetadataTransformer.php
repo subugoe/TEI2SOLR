@@ -419,9 +419,9 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getNumberOfPages(DOMXPath $xpath): ?int
     {
-        $numberOfPagesNode = $xpath->query('//tei:pb');
+        $numberOfPagesNode = $xpath->query('//tei:body//tei:pb');
 
-        $numberOfPages = null;
+        $numberOfPages = 0;
 
         if ($numberOfPagesNode->count()) {
             $numberOfPages = $numberOfPagesNode->count();
