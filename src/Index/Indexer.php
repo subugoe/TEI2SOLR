@@ -115,7 +115,14 @@ class Indexer implements IndexerInterface
         $body = $pagesNodes[0];
         $this->transcriptionService->setGraphics($graphics);
         $this->editedTextService->setGraphics($graphics);
-        $pages = $this->preProcessingService->splitByPages($body);
+        $pbCount = $this->metadataTransformer->getNumberOfPages($xpath);
+
+        if (1 >= $pbCount) {
+            $pages = $this->preProcessingService->splitByPages($body);
+        } else {
+            $pages = $body;
+        }
+        
         $pageLevelEditedText = [];
         $pageLevelTranscriptedText = [];
         $pagesGndsUuids = [];
@@ -412,7 +419,7 @@ class Indexer implements IndexerInterface
                     $errors[] = $error->message;
                 }
 
-                $filesystem->appendToFile($teiImportLogFile, implode('', $errors));
+                $filesystem->appendToFile($this->teiImportLogFile.'teiImportLogs.txt', implode('', $errors));
 
                 libxml_clear_errors();
             }
