@@ -21,20 +21,37 @@ class PreProcessingService
         return $this->pages;
     }
 
-    public function splitByPages(DOMELement $body)
+    public function getSinglePage(DOMELement $body)
+    {
+        $singlePage = new DOMDocument();
+        $node = $singlePage->createElement($body->nodeName);
+        $node = $this->cloneAttributes($body->attributes, $node);
+        $node = $singlePage->appendChild($node);
+        $this->pages[] = $singlePage;
+        $this->lastParent = $node;
+        $isSinglePage = true;
+        // Start recursion
+        $this->checkPb($body, $isSinglePage);
+
+        return $this->pages;
+    }
+
+    public function getMultiplePages(DOMELement $body)
     {
         $this->pages[] = new DOMDocument();
 
         // To start out we set our empty page as last parent to append other elements to
         $this->lastParent = $this->getLastPage();
 
+        $isSinglePage = false;
+
         // Start recursion
-        $this->checkPb($body);
+        $this->checkPb($body, $isSinglePage);
 
         return $this->pages;
     }
 
-    private function checkPb(DOMNode $el): void
+    private function checkPb(DOMNode $el, bool $isSinglePage): void
     {
         if ('#comment' === $el->nodeName) {
             return;
@@ -59,10 +76,10 @@ class PreProcessingService
 
             /** @var DOMElement $child */
             foreach ($el->childNodes as $child) {
-                if ('pb' === $child->nodeName) {
+                if ('pb' === $child->nodeName && !$isSinglePage) {
                     $this->pages[] = $this->createNewPage($child);
                 } else {
-                    $this->checkPb($child);
+                    $this->checkPb($child, $isSinglePage);
                 }
             }
 

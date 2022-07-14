@@ -117,12 +117,13 @@ class Indexer implements IndexerInterface
         $this->editedTextService->setGraphics($graphics);
         $pbCount = $this->metadataTransformer->getNumberOfPages($xpath);
 
-        if (1 >= $pbCount) {
-            $pages = $this->preProcessingService->splitByPages($body);
+        if (0 === $pbCount) {
+            $pages = $this->preProcessingService->getSinglePage($body);
         } else {
-            $pages = $body;
+            $pages = $this->preProcessingService->getMultiplePages($body);
+            array_shift($pages);
         }
-        
+
         $pageLevelEditedText = [];
         $pageLevelTranscriptedText = [];
         $pagesGndsUuids = [];
@@ -131,9 +132,9 @@ class Indexer implements IndexerInterface
         $pagesWorks = [];
         $pagesAllAnnotationIds = [];
 
-        foreach ($pages as $key => $page) {
-            if ($key > 0) {
-                $pageIndex = $key - 1;
+        if (is_iterable($pages)) {
+            foreach ($pages as $key => $page) {
+                $pageIndex = $key;
                 $transcriptedDoc = $this->transcriptionService->transformPage($page);
                 $pageLevelTranscriptedText[] = htmlspecialchars_decode($transcriptedDoc->saveHTML());
                 $editedDoc = $this->editedTextService->transformPage($page);
