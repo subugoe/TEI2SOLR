@@ -7,93 +7,134 @@ namespace Subugoe\TEI2SOLRBundle\Index;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
-use League\Flysystem\Exception;
 use Solarium\Client;
 use Subugoe\TEI2SOLRBundle\Model\SolrDocument;
 use Subugoe\TEI2SOLRBundle\Service\EditedTextService;
 use Subugoe\TEI2SOLRBundle\Service\PreProcessingService;
 use Subugoe\TEI2SOLRBundle\Service\TranscriptionService;
 use Subugoe\TEI2SOLRBundle\Transform\MetadataTransformerInterface;
-use Symfony\Component\Filesystem\Exception\ExceptionInterface;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
 class Indexer implements IndexerInterface
 {
-    private const PAGES_XPATH = '//tei:body';
-    private const LITERATURE_XPATH = '//tei:text//tei:body//tei:listBibl//tei:bibl';
+    /**
+     * @var string
+     */
     private const ABSTRACT_XPATH = '//tei:abstract';
-    private const NOTES_XPATH = '//tei:text[@xml:lang="ger"]//tei:div//tei:div//tei:note';
-    private const GNDS_XPATH = '//tei:text//tei:name[@type="place"]';
-    private const FULLTEXT_XPATH = '//tei:body//tei:div/descendant::text()';
-    private const DOCUMENT_ID_XPATH = '//tei:text/@xml:id';
-    private const DOCUMENT_ID_XPATH_ALT = '//tei:TEI/@xml:id';
-    private const ORIGIN_PLACE_XPATH = '//tei:name[@type="place" and @subtype="orn"]/@ref';
+
+    /**
+     * @var string
+     */
     private const ARTICLE_DOC_TYPE = 'article';
+
+    /**
+     * @var string
+     */
+    private const DOCUMENT_ID_XPATH = '//tei:text/@xml:id';
+
+    /**
+     * @var string
+     */
+    private const DOCUMENT_ID_XPATH_ALT = '//tei:TEI/@xml:id';
+
+    /**
+     * @var string
+     */
     private const ENTITY_DOC_TYPE = 'entity';
+
+    /**
+     * @var string
+     */
+    private const FULLTEXT_XPATH = '//tei:body//tei:div/descendant::text()';
+
+    /**
+     * @var string
+     */
+    private const GNDS_XPATH = '//tei:text//tei:name[@type="place"]';
+
+    /**
+     * @var string
+     */
     private const LITERATURE_DOC_TYPE = 'literature';
-    private const NOTE_DOC_TYPE = 'note';
-    private const PAGE_DOC_TYPE = 'page';
-    private const TEI_NAMESPACE = 'http://www.tei-c.org/ns/1.0';
+
+    /**
+     * @var string
+     */
+    private const LITERATURE_XPATH = '//tei:text//tei:body//tei:listBibl//tei:bibl';
+
+    /**
+     * @var string
+     */
     private const NAMESPACE_PREFIX = 'tei';
-    private Client $client;
-    private PreProcessingService $preProcessingService;
-    private TranscriptionService $transcriptionService;
-    private EditedTextService $editedTextService;
-    private MetadataTransformerInterface $metadataTransformer;
-    private ?string $teiDir = null;
-    private ?string $teiSampleDir = null;
-    private ?string $litDir;
-    private ?string $gndFilesDir;
-    private ?string $geonameFilesDir;
-    private ?string $wikidataFilesDir;
-    private ?string $wikipediaFilesDir;
-    private ?string $teiImportLogFile;
-    private ?array $literaturDataElements;
-    private ?bool $indexPages;
-    private ?bool $indexEntities;
-    private ?bool $indexDoctypeNotes;
-    private ?string $gndApi;
-    private ?string $transformationFields;
-    private ?bool $indexWikidata;
+
+    /**
+     * @var string
+     */
+    private const NOTE_DOC_TYPE = 'note';
+
+    /**
+     * @var string
+     */
+    private const NOTES_XPATH = '//tei:text[@xml:lang="ger"]//tei:div//tei:div//tei:note';
+
+    /**
+     * @var string
+     */
+    private const ORIGIN_PLACE_XPATH = '//tei:name[@type="place" and @subtype="orn"]/@ref';
+
+    /**
+     * @var string
+     */
+    private const PAGE_DOC_TYPE = 'page';
+
+    /**
+     * @var string
+     */
+    private const PAGES_XPATH = '//tei:body';
+
+    /**
+     * @var string
+     */
+    private const TEI_NAMESPACE = 'http://www.tei-c.org/ns/1.0';
+
     private ?bool $addArticlesTOGnd;
+
     private ?bool $editedTextRemoveHyphen;
 
-    public function __construct(
-        Client $client,
-        PreProcessingService $preProcessingService,
-        TranscriptionService $transcriptionService,
-        EditedTextService $editedTextService,
-        MetadataTransformerInterface $metadataTransformer
-    ) {
-        $this->client = $client;
-        $this->transcriptionService = $transcriptionService;
-        $this->editedTextService = $editedTextService;
-        $this->preProcessingService = $preProcessingService;
-        $this->metadataTransformer = $metadataTransformer;
-    }
+    private ?string $geonameFilesDir;
 
-    public function setConfigs(string $teiDir, string $teiSampleDir, string $litDir, string $gndFilesDir, string $geonameFilesDir, string $wikidataFilesDir, string $wikipediaFilesDir, string $teiImportLogFile, array $literaturDataElements, bool $indexPages, bool $indexEntities, bool $indexDoctypeNotes, string $gndApi,
-        string $transformationFields, bool $indexWikidata, bool $addArticlesTOGnd, bool $editedTextRemoveHyphen): void
+    private ?string $gndApi;
+
+    private ?string $gndFilesDir;
+
+    private ?bool $indexDoctypeNotes;
+
+    private ?bool $indexEntities;
+
+    private ?bool $indexPages;
+
+    private ?bool $indexWikidata;
+
+    private ?string $litDir;
+
+    private ?array $literaturDataElements;
+
+    private ?string $teiDir = null;
+
+    private ?string $teiImportLogFile;
+
+    private ?string $teiSampleDir = null;
+
+    private ?string $transformationFields;
+
+    private ?string $wikidataFilesDir;
+
+    private ?string $wikipediaFilesDir;
+
+    public function __construct(private Client $client, private PreProcessingService $preProcessingService, private TranscriptionService $transcriptionService, private EditedTextService $editedTextService, private MetadataTransformerInterface $metadataTransformer)
     {
-        $this->teiDir = $teiDir;
-        $this->teiSampleDir = $teiSampleDir;
-        $this->litDir = $litDir;
-        $this->gndFilesDir = $gndFilesDir;
-        $this->geonameFilesDir = $geonameFilesDir;
-        $this->wikidataFilesDir = $wikidataFilesDir;
-        $this->wikipediaFilesDir = $wikipediaFilesDir;
-        $this->teiImportLogFile = $teiImportLogFile;
-        $this->literaturDataElements = $literaturDataElements;
-        $this->indexPages = $indexPages;
-        $this->indexEntities = $indexEntities;
-        $this->indexDoctypeNotes = $indexDoctypeNotes;
-        $this->gndApi = $gndApi;
-        $this->transformationFields = $transformationFields;
-        $this->indexWikidata = $indexWikidata;
-        $this->addArticlesTOGnd = $addArticlesTOGnd;
-        $this->editedTextRemoveHyphen = $editedTextRemoveHyphen;
     }
 
     public function deleteSolrIndex(): void
@@ -101,6 +142,7 @@ class Indexer implements IndexerInterface
         $update = $this->client->createUpdate();
         $update->addDeleteQuery('*:*');
         $update->addCommit();
+
         $this->client->execute($update);
     }
 
@@ -108,8 +150,10 @@ class Indexer implements IndexerInterface
     {
         $doc = new DOMDocument();
         $doc->load($filePath, LIBXML_NOBLANKS);
+
         $xpath = new DOMXPath($doc);
         $xpath->registerNamespace(self::NAMESPACE_PREFIX, self::TEI_NAMESPACE);
+
         $pagesNodes = $xpath->query(self::PAGES_XPATH);
         /** @var DOMElement $body */
         $body = $pagesNodes[0];
@@ -206,7 +250,7 @@ class Indexer implements IndexerInterface
                         $litdoc->doctype = self::LITERATURE_DOC_TYPE;
 
                         if ('#text' !== $childNode->nodeName) {
-                            $text = trim(preg_replace('/\s+/', ' ', $childNode->nodeValue));
+                            $text = trim(preg_replace('#\s+#', ' ', $childNode->nodeValue));
 
                             if ('relatedItem' === $childNode->nodeName) {
                                 foreach ($childNode->childNodes as $childChildNode) {
@@ -222,7 +266,7 @@ class Indexer implements IndexerInterface
                                 $name = 'title_';
 
                                 if (!empty($childNode->attributes->item(0)->nodeValue)) {
-                                    $name .=  $childNode->attributes->item(0)->nodeValue;
+                                    $name .= $childNode->attributes->item(0)->nodeValue;
                                 }
 
                                 if (!empty($childNode->attributes->item(1)->nodeValue)) {
@@ -239,7 +283,7 @@ class Indexer implements IndexerInterface
                             } elseif ('author' === $childNode->nodeName) {
                                 foreach ($childNode->childNodes as $item) {
                                     if (!empty($item->nodeValue)) {
-                                        $authorElement = trim(preg_replace('/\s+/', ' ', $item->nodeValue));
+                                        $authorElement = trim(preg_replace('#\s+#', ' ', $item->nodeValue));
 
                                         if (!empty($authorElement)) {
                                             $author[] = $authorElement;
@@ -249,7 +293,7 @@ class Indexer implements IndexerInterface
                             } elseif ('publisher' === $childNode->nodeName) {
                                 foreach ($childNode->childNodes as $item) {
                                     if (!empty($item->nodeValue)) {
-                                        $publisherElement = trim(preg_replace('/\s+/', ' ', $item->nodeValue));
+                                        $publisherElement = trim(preg_replace('#\s+#', ' ', $item->nodeValue));
 
                                         if (!empty($publisherElement)) {
                                             $publisher[] = $publisherElement;
@@ -259,7 +303,7 @@ class Indexer implements IndexerInterface
                             } elseif ('pubPlace' === $childNode->nodeName) {
                                 foreach ($childNode->childNodes as $item) {
                                     if (!empty($item->nodeValue)) {
-                                        $pubPlaceElement = trim(preg_replace('/\s+/', ' ', $item->nodeValue));
+                                        $pubPlaceElement = trim(preg_replace('#\s+#', ' ', $item->nodeValue));
 
                                         if (!empty($pubPlaceElement)) {
                                             $pubPlace[] = $pubPlaceElement;
@@ -268,7 +312,7 @@ class Indexer implements IndexerInterface
                                 }
                             } elseif ('edition' === $childNode->nodeName) {
                                 foreach ($childNode->childNodes as $item) {
-                                    $editionElement = trim(preg_replace('/\s+/', ' ', $item->nodeValue));
+                                    $editionElement = trim(preg_replace('#\s+#', ' ', $item->nodeValue));
 
                                     if (!empty($editionElement)) {
                                         $edition[] = $editionElement;
@@ -291,7 +335,7 @@ class Indexer implements IndexerInterface
                             } elseif ('biblScope' === $childNode->nodeName) {
                                 $name = 'biblScope_'.$childNode->attributes->item(0)->nodeValue;
 
-                                if (isset($childNode->attributes->item(1)->nodeName) && 'n' === $childNode->attributes->item(1)->nodeName && !empty($childNode->attributes->item(1)->nodeValue)) {
+                                if (property_exists($childNode->attributes->item(1), 'nodeName') && $childNode->attributes->item(1)->nodeName !== null && 'n' === $childNode->attributes->item(1)->nodeName && !empty($childNode->attributes->item(1)->nodeValue)) {
                                     $name .= '_'.$childNode->attributes->item(1)->nodeValue;
                                 }
 
@@ -302,9 +346,8 @@ class Indexer implements IndexerInterface
                                 if (!empty($solrFieldName) && !empty($text)) {
                                     $litdoc->$solrFieldName = $text;
                                 }
-
                             } else {
-                                if (isset($childNode->nodeName)) {
+                                if (property_exists($childNode, 'nodeName') && $childNode->nodeName !== null) {
                                     $name = strval($childNode->nodeName);
                                 }
 
@@ -353,16 +396,31 @@ class Indexer implements IndexerInterface
         try {
             $filesystem = new Filesystem();
             $filesystem->remove($this->litDir);
-        } catch (IOExceptionInterface $exception) {
-            echo 'Error deleting directory at'.$exception->getPath();
+        } catch (IOExceptionInterface $ioException) {
+            echo 'Error deleting directory at'.$ioException->getPath();
         }
     }
 
-    private function addSampleTeiFileToProjectTeiFiles()
+    public function setConfigs(string $teiDir, string $teiSampleDir, string $litDir, string $gndFilesDir, string $geonameFilesDir, string $wikidataFilesDir, string $wikipediaFilesDir, string $teiImportLogFile, array $literaturDataElements, bool $indexPages, bool $indexEntities, bool $indexDoctypeNotes, string $gndApi,
+        string $transformationFields, bool $indexWikidata, bool $addArticlesTOGnd, bool $editedTextRemoveHyphen): void
     {
-        $finderSample = new Finder();
-
-        return $finderSample->files()->in($this->teiSampleDir);
+        $this->teiDir = $teiDir;
+        $this->teiSampleDir = $teiSampleDir;
+        $this->litDir = $litDir;
+        $this->gndFilesDir = $gndFilesDir;
+        $this->geonameFilesDir = $geonameFilesDir;
+        $this->wikidataFilesDir = $wikidataFilesDir;
+        $this->wikipediaFilesDir = $wikipediaFilesDir;
+        $this->teiImportLogFile = $teiImportLogFile;
+        $this->literaturDataElements = $literaturDataElements;
+        $this->indexPages = $indexPages;
+        $this->indexEntities = $indexEntities;
+        $this->indexDoctypeNotes = $indexDoctypeNotes;
+        $this->gndApi = $gndApi;
+        $this->transformationFields = $transformationFields;
+        $this->indexWikidata = $indexWikidata;
+        $this->addArticlesTOGnd = $addArticlesTOGnd;
+        $this->editedTextRemoveHyphen = $editedTextRemoveHyphen;
     }
 
     public function teiTosolr(bool $importSampleTei): void
@@ -433,23 +491,76 @@ class Indexer implements IndexerInterface
         try {
             $filesystem = new Filesystem();
             $filesystem->remove($this->teiDir);
-        } catch (IOExceptionInterface $exception) {
-            echo 'Error deleting directory at'.$exception->getPath();
+        } catch (IOExceptionInterface $ioException) {
+            echo 'Error deleting directory at'.$ioException->getPath();
         }
 
         try {
             $filesystem = new Filesystem();
             $filesystem->remove($this->teiSampleDir);
-        } catch (IOExceptionInterface $exception) {
-            echo 'Error deleting directory at'.$exception->getPath();
+        } catch (IOExceptionInterface $ioException) {
+            echo 'Error deleting directory at'.$ioException->getPath();
         }
+    }
+
+    private function addArticlesToGnd(): void
+    {
+        $gndQuery = sprintf('doctype:%s', 'entity');
+        $gndSelect = $this->client->createSelect()
+            ->setQuery($gndQuery)
+            ->setRows(1000);
+        $gndDocuments = $this->client->select($gndSelect)->getDocuments();
+
+        if (!empty($gndDocuments) && is_iterable($gndDocuments)) {
+            foreach ($gndDocuments as $key => $gndDocument) {
+                $articleQuery = sprintf('doctype:%s AND gnds:%s', 'article', $gndDocument['id']);
+                $articleSelect = $this->client->createSelect()
+                    ->setQuery($articleQuery)
+                    ->setFields(['id'])
+                    ->setRows(1000);
+                $articleDocuments = $this->client->select($articleSelect)->getDocuments();
+
+                if (!empty($articleDocuments) && is_iterable($articleDocuments)) {
+                    $articles = [];
+
+                    foreach ($articleDocuments as $key => $articleDocument) {
+                        $articles[] = $articleDocument['id'];
+                    }
+
+                    $update = $this->client->createUpdate();
+                    $gndDoc = $update->createDocument();
+                    $gndDoc->id = $gndDocument['id'];
+                    $gndDoc->doctype = $gndDocument['doctype'];
+                    $gndDoc->entity_name = $gndDocument['entity_name'];
+                    $gndDoc->entitytype = $gndDocument['entitytype'];
+                    $gndDoc->mostly_used_name = $gndDocument['mostly_used_name'];
+                    $gndDoc->alternatively_name = $gndDocument['alternatively_name'];
+                    $gndDoc->latitude = $gndDocument['latitude'];
+                    $gndDoc->longitude = $gndDocument['longitude'];
+                    $gndDoc->geoname_id = $gndDocument['geoname_id'];
+                    $gndDoc->wikidata_id = $gndDocument['wikidata_id'];
+                    $gndDoc->wikidata_id = $gndDocument['wikidata_id'];
+                    $gndDoc->wikidata_url = $gndDocument['wikidata_url'];
+                    $gndDoc->de_wikipedia_url = $gndDocument['de_wikipedia_url'];
+                    $gndDoc->articles = $articles;
+                    $update->addDocument($gndDoc);
+                    $update->addCommit();
+                    $this->client->execute($update);
+                }
+            }
+        }
+    }
+
+    private function addSampleTeiFileToProjectTeiFiles()
+    {
+        $finderSample = new Finder();
+
+        return $finderSample->files()->in($this->teiSampleDir);
     }
 
     private function convertSoftHyphenToHyphen(string $text): string
     {
-        $text = preg_replace('~\x{00AD}~u', '-', $text);
-
-        return $text;
+        return preg_replace('#\x{00AD}#u', '-', $text);
     }
 
     private function getAbstracts(DOMXPath $xpath): array
@@ -474,7 +585,7 @@ class Indexer implements IndexerInterface
         if (is_iterable($notesNodes) && !empty($notesNodes)) {
             foreach ($notesNodes as $key => $notesNode) {
                 if (!empty($notesNodes->item(0)->nodeValue) && !empty($id)) {
-                    $note = trim(preg_replace('/\s+/', ' ', $notesNode->nodeValue));
+                    $note = trim(preg_replace('#\s+#', ' ', $notesNode->nodeValue));
                     $doctypeNotes[$id][] = ['id' => $id.'_note_'.++$key, 'article_id' => $id, 'doctype' => self::NOTE_DOC_TYPE, 'note' => $note];
                 }
             }
@@ -491,16 +602,12 @@ class Indexer implements IndexerInterface
 
         foreach ($documentGndsNodes as $documentGndsNode) {
             foreach ($documentGndsNode->attributes as $attribute) {
-                if (false !== stripos($attribute->nodeValue, 'gnd')) {
-                    if (!empty($attribute->nodeValue)) {
-                        $gndRemoveablePart = explode(':', $attribute->nodeValue)[0];
-                        $gnd = str_replace($gndRemoveablePart.':', '', $attribute->nodeValue);
-                        $gnds[] = $gnd;
-                    }
+                if (false !== stripos($attribute->nodeValue, 'gnd') && !empty($attribute->nodeValue)) {
+                    $gndRemoveablePart = explode(':', $attribute->nodeValue)[0];
+                    $gnd = str_replace($gndRemoveablePart.':', '', $attribute->nodeValue);
+                    $gnds[] = $gnd;
                 }
             }
-
-
         }
 
         return array_unique($gnds);
@@ -517,11 +624,11 @@ class Indexer implements IndexerInterface
                 $entityName = '';
                 foreach ($documentGndsNode->childNodes as $childNode) {
                     if ('#text' === $childNode->nodeName && !empty($childNode->data) && ',' !== $childNode->data) {
-                        $entityName .= ' '.trim(preg_replace('/\s+/', ' ', $childNode->data));
+                        $entityName .= ' '.trim(preg_replace('#\s+#', ' ', $childNode->data));
                     } else {
                         foreach ($childNode->childNodes as $item) {
                             if (!empty($item->data)) {
-                                $entityName .= ' '.trim(preg_replace('/\s+/', ' ', $item->data));
+                                $entityName .= ' '.trim(preg_replace('#\s+#', ' ', $item->data));
                             }
                         }
                     }
@@ -561,7 +668,7 @@ class Indexer implements IndexerInterface
         }
 
         if (!empty($fulltext)) {
-            $fulltext = trim(preg_replace('/\s+/', ' ', $fulltext));
+            $fulltext = trim(preg_replace('#\s+#', ' ', $fulltext));
         }
 
         return $fulltext;
@@ -724,7 +831,7 @@ class Indexer implements IndexerInterface
                 $license = $this->metadataTransformer->getLicense($xpath);
 
                 if (!empty($license)) {
-                    $license = trim(preg_replace('/\s+/', ' ', $license));
+                    $license = trim(preg_replace('#\s+#', ' ', $license));
                     $doc->license = $license;
                 }
             }
@@ -771,17 +878,21 @@ class Indexer implements IndexerInterface
                 if (!empty($repository)) {
                     $institutionDetail .= $repository;
                 }
+
                 if (!empty($institution)) {
                     $institutionDetail .= ', '.$institution;
                 }
+
                 if (!empty($settlement)) {
                     $institutionDetail .= ', '.$settlement;
                 }
+
                 if (!empty($country)) {
                     $institutionDetail .= ' ('.$country.')';
                 }
+
                 if (!empty($institutionDetail)) {
-                    $institution = trim(preg_replace('/\s+/', ' ', $institutionDetail));
+                    $institution = trim(preg_replace('#\s+#', ' ', $institutionDetail));
                 }
 
                 if (!empty($institution)) {
@@ -829,7 +940,7 @@ class Indexer implements IndexerInterface
                 }
             }
 
-            if (in_array('fulltext', $transformationFields)) {
+            if (in_array('fulltext', $transformationFields, true)) {
                 $fulltext = $this->getFulltext($xpath);
 
                 if (!empty($fulltext)) {
@@ -837,7 +948,7 @@ class Indexer implements IndexerInterface
                 }
             }
 
-            if (in_array('number_of_pages', $transformationFields)) {
+            if (in_array('number_of_pages', $transformationFields, true)) {
                 $numberOfPages = $this->metadataTransformer->getNumberOfPages($xpath);
 
                 if (!empty($numberOfPages)) {
@@ -885,16 +996,12 @@ class Indexer implements IndexerInterface
                 }
             }
 
-            if (in_array('image_ids', $transformationFields)) {
-                if (!empty($imageIds)) {
-                    $doc->image_ids = $imageIds;
-                }
+            if (in_array('image_ids', $transformationFields) && !empty($imageIds)) {
+                $doc->image_ids = $imageIds;
             }
 
-            if (in_array('image_urls', $transformationFields)) {
-                if (!empty($imageUrls)) {
-                    $doc->image_urls = $imageUrls;
-                }
+            if (in_array('image_urls', $transformationFields) && !empty($imageUrls)) {
+                $doc->image_urls = $imageUrls;
             }
 
             if (in_array('transcripted_text', $transformationFields)) {
@@ -995,27 +1102,27 @@ class Indexer implements IndexerInterface
                         $childDoc->edited_text = $pagesEdited[$i];
                     }
 
-                    if (isset($pagesGndsUuids[$i]) && !empty(($pagesGndsUuids[$i]))) {
+                    if (isset($pagesGndsUuids[$i]) && !empty($pagesGndsUuids[$i])) {
                         $childDoc->entities = array_values($pagesGndsUuids[$i]);
                         $childDoc->annotation_ids = array_keys($pagesGndsUuids[$i]);
                     }
 
-                    if (isset($pagesNotes[$i]) && !empty(($pagesNotes[$i]))) {
+                    if (isset($pagesNotes[$i]) && !empty($pagesNotes[$i])) {
                         $childDoc->page_notes = array_values($pagesNotes[$i]);
                         $childDoc->page_notes_ids = array_keys($pagesNotes[$i]);
                     }
 
-                    if (isset($pagesDates[$i]) && !empty(($pagesDates[$i]))) {
+                    if (isset($pagesDates[$i]) && !empty($pagesDates[$i])) {
                         $childDoc->page_dates = array_values($pagesDates[$i]);
                         $childDoc->page_dates_ids = array_keys($pagesDates[$i]);
                     }
 
-                    if (isset($pagesWorks[$i]) && !empty(($pagesWorks[$i]))) {
+                    if (isset($pagesWorks[$i]) && !empty($pagesWorks[$i])) {
                         $childDoc->page_works = array_values($pagesWorks[$i]);
                         $childDoc->page_works_ids = array_keys($pagesWorks[$i]);
                     }
 
-                    if (isset($pagesAllAnnotationIds[$i]) && !empty(($pagesAllAnnotationIds[$i]))) {
+                    if (isset($pagesAllAnnotationIds[$i]) && !empty($pagesAllAnnotationIds[$i])) {
                         $childDoc->page_all_annotation_ids = $pagesAllAnnotationIds[$i];
                     }
 
@@ -1026,54 +1133,6 @@ class Indexer implements IndexerInterface
             $update->addDocument($doc);
             $update->addCommit();
             $this->client->execute($update);
-        }
-    }
-
-    private function addArticlesToGnd(): void
-    {
-        $gndQuery = sprintf('doctype:%s', 'entity');
-        $gndSelect = $this->client->createSelect()
-            ->setQuery($gndQuery)
-            ->setRows(1000);
-        $gndDocuments = $this->client->select($gndSelect)->getDocuments();
-
-        if (!empty($gndDocuments) && is_iterable($gndDocuments)) {
-            foreach ($gndDocuments as $key => $gndDocument) {
-                $articleQuery = sprintf('doctype:%s AND gnds:%s', 'article', $gndDocument['id']);
-                $articleSelect = $this->client->createSelect()
-                    ->setQuery($articleQuery)
-                    ->setFields(['id'])
-                    ->setRows(1000);
-                $articleDocuments = $this->client->select($articleSelect)->getDocuments();
-
-                if (!empty($articleDocuments) && is_iterable($articleDocuments)) {
-                    $articles = [];
-
-                    foreach ($articleDocuments as $key => $articleDocument) {
-                        $articles[] = $articleDocument['id'];
-                    }
-
-                    $update = $this->client->createUpdate();
-                    $gndDoc = $update->createDocument();
-                    $gndDoc->id = $gndDocument['id'];
-                    $gndDoc->doctype = $gndDocument['doctype'];
-                    $gndDoc->entity_name = $gndDocument['entity_name'];
-                    $gndDoc->entitytype = $gndDocument['entitytype'];
-                    $gndDoc->mostly_used_name = $gndDocument['mostly_used_name'];
-                    $gndDoc->alternatively_name = $gndDocument['alternatively_name'];
-                    $gndDoc->latitude = $gndDocument['latitude'];
-                    $gndDoc->longitude = $gndDocument['longitude'];
-                    $gndDoc->geoname_id = $gndDocument['geoname_id'];
-                    $gndDoc->wikidata_id = $gndDocument['wikidata_id'];
-                    $gndDoc->wikidata_id = $gndDocument['wikidata_id'];
-                    $gndDoc->wikidata_url = $gndDocument['wikidata_url'];
-                    $gndDoc->de_wikipedia_url = $gndDocument['de_wikipedia_url'];
-                    $gndDoc->articles = $articles;
-                    $update->addDocument($gndDoc);
-                    $update->addCommit();
-                    $this->client->execute($update);
-                }
-            }
         }
     }
 
@@ -1093,10 +1152,10 @@ class Indexer implements IndexerInterface
                             $fileContent = @file_get_contents($remoteFilePath, true);
 
                             if (false === $fileContent) {
-                                throw new Exception($localFilePath . PHP_EOL);
+                                throw new \Exception($localFilePath.PHP_EOL);
                             }
-                        } catch (Exception $e) {
-                            echo $e->getMessage() . PHP_EOL;
+                        } catch (\Exception $exception) {
+                            echo $exception->getMessage().PHP_EOL;
                         }
 
                         // TODO: better exception handling to not go here when remote file path failed
@@ -1112,11 +1171,11 @@ class Indexer implements IndexerInterface
                         $gndArr = json_decode(@file_get_contents($localFilePath));
                     }
 
-                    if (isset($gndArr->preferredName) && !empty($gndArr->preferredName)) {
+                    if (property_exists($gndArr, 'preferredName') && $gndArr->preferredName !== null && !empty($gndArr->preferredName)) {
                         $preferredName = $gndArr->preferredName;
                     }
 
-                    if (isset($gndArr->variantName) && !empty($gndArr->variantName)) {
+                    if (property_exists($gndArr, 'variantName') && $gndArr->variantName !== null && !empty($gndArr->variantName)) {
                         $variantNames = $gndArr->variantName;
                     }
 
@@ -1135,7 +1194,7 @@ class Indexer implements IndexerInterface
                         $doc->alternatively_name = $variantNames;
                     }
 
-                    if (isset($gndArr->hasGeometry)) {
+                    if (property_exists($gndArr, 'hasGeometry') && $gndArr->hasGeometry !== null) {
                         foreach ($gndArr->hasGeometry as $gitem) {
                             foreach ($gitem->asWKT as $asWKTitem) {
                                 preg_match('#\((.*?)\)#', $asWKTitem, $match);
@@ -1151,36 +1210,32 @@ class Indexer implements IndexerInterface
                         $doc->longitude = $longitudes;
                     }
 
-                    if ($this->indexWikidata && isset($gndArr->sameAs) && !empty($gndArr->sameAs)) {
+                    if ($this->indexWikidata && (property_exists($gndArr, 'sameAs') && $gndArr->sameAs !== null) && !empty($gndArr->sameAs)) {
                         foreach ($gndArr->sameAs as $k => $item) {
-                            if (isset($item->collection->name) && 'Wikidata' === $item->collection->name) {
+                            if (property_exists($item->collection, 'name') && $item->collection->name !== null && 'Wikidata' === $item->collection->name) {
                                 $wikidataId = array_reverse(explode('/', $item->id))[0];
 
                                 if (!empty($wikidataId)) {
-                                    $doc->wikidata_id =  $wikidataId;
+                                    $doc->wikidata_id = $wikidataId;
                                 }
-                            }
-                            elseif (str_contains($item->id, 'sws.geonames.org')) {
+                            } elseif (str_contains($item->id, 'sws.geonames.org')) {
                                 $geonameId = array_reverse(explode('/', $item->id))[0];
 
                                 if (!empty($geonameId)) {
-                                    $doc->geoname_id =  $geonameId;
+                                    $doc->geoname_id = $geonameId;
                                 }
-                            }
-                            elseif (isset($item->collection->abbr) && 'dewiki' === $item->collection->abbr) {
+                            } elseif (property_exists($item->collection, 'abbr') && $item->collection->abbr !== null && 'dewiki' === $item->collection->abbr) {
                                 $wikipedia = $item->id;
                             }
                         }
                     }
 
                     if (isset($wikipedia) && !empty($wikipedia)) {
-                        $doc->de_wikipedia_url =  $wikipedia;
-                    } else {
-                        if (isset($gndArr->wikipedia) && !empty($gndArr->wikipedia)) {
-                            foreach ($gndArr->wikipedia as $k => $item) {
-                                if (str_contains($item->id, 'de.wikipedia.org')) {
-                                    $doc->wikidata_id = $item->id;
-                                }
+                        $doc->de_wikipedia_url = $wikipedia;
+                    } elseif (property_exists($gndArr, 'wikipedia') && $gndArr->wikipedia !== null && !empty($gndArr->wikipedia)) {
+                        foreach ($gndArr->wikipedia as $k => $item) {
+                            if (str_contains($item->id, 'de.wikipedia.org')) {
+                                $doc->wikidata_id = $item->id;
                             }
                         }
                     }
@@ -1188,7 +1243,6 @@ class Indexer implements IndexerInterface
                     $update->addDocument($doc);
                     $update->addCommit();
                     $this->client->execute($update);
-
                 }
             }
         }
@@ -1196,8 +1250,8 @@ class Indexer implements IndexerInterface
         try {
             $filesystem = new Filesystem();
             $filesystem->remove($this->gndFilesDir);
-        } catch (IOExceptionInterface $exception) {
-            echo 'Error deleting directory at'.$exception->getPath();
+        } catch (IOExceptionInterface $ioException) {
+            echo 'Error deleting directory at'.$ioException->getPath();
         }
     }
 
@@ -1225,12 +1279,11 @@ class Indexer implements IndexerInterface
     private function removeHyphen(string $text): string
     {
         $pattern = '/(\w+)-\s(\w)/i';
-        $text = preg_replace_callback(
+
+        return preg_replace_callback(
             $pattern,
-            fn ($match) => $match[1].$match[2],
+            static fn($match) => $match[1].$match[2],
             $text
         );
-
-        return $text;
     }
 }

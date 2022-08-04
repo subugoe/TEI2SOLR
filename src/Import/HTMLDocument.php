@@ -44,19 +44,14 @@ class HTMLDocument extends DOMDocument
         return $element;
     }
 
-    public function ul(string $classes = ''): DOMElement
+    public function div(string $classes = ''): DOMElement
     {
-        return $this->createCustomElement('ul', $classes);
+        return $this->createCustomElement('div', $classes);
     }
 
     public function li(string $classes = ''): DOMElement
     {
         return $this->createCustomElement('li', $classes);
-    }
-
-    public function div(string $classes = ''): DOMElement
-    {
-        return $this->createCustomElement('div', $classes);
     }
 
     public function p(string $classes = ''): DOMElement
@@ -77,5 +72,10 @@ class HTMLDocument extends DOMDocument
     public function text(string $data = ''): DOMNode
     {
         return $this->createTextNode($data);
+    }
+
+    public function ul(string $classes = ''): DOMElement
+    {
+        return $this->createCustomElement('ul', $classes);
     }
 }

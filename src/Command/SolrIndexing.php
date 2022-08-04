@@ -13,20 +13,22 @@ use Symfony\Component\Console\Output\OutputInterface;
 class SolrIndexing extends Command
 {
     protected static $defaultName = 'app:tei2solr';
+
     protected static string $description = 'Process TEI data to solr data for importing into solr.';
-    private ImporterInterface $importer;
+
     private ?bool $importSampleTei;
+
     private ?bool $importTeiFiles;
-    private IndexerInterface $indexer;
+
     private ?bool $literatureToSolr;
-    private ?bool $teiToSolr;
+
     private ?bool $multipelFolderImport;
 
-    public function __construct(ImporterInterface $importer, IndexerInterface $indexer)
+    private ?bool $teiToSolr;
+
+    public function __construct(private ImporterInterface $importer, private IndexerInterface $indexer)
     {
         parent::__construct();
-        $this->importer = $importer;
-        $this->indexer = $indexer;
     }
 
     public function setConfigs(bool $importSampleTei, bool $importTeiFiles, bool $literatureToSolr, bool $teiToSolr, bool $multipelFolderImport): void

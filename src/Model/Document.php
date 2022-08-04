@@ -11,6 +11,7 @@ class Document
     private ?string $fulltext = null;
 
     private ?string $fulltextHtml = null;
+
     private ?string $id = null;
 
     private ?string $originDate = null;
@@ -24,7 +25,7 @@ class Document
     /**
      * @var array
      */
-    private $sourceDescription;
+    private $sourceDescription = [];
 
     private ?string $title = null;
 

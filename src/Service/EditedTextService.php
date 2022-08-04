@@ -2,10 +2,10 @@
 
 namespace Subugoe\TEI2SOLRBundle\Service;
 
-use Subugoe\TEI2SOLRBundle\Import\HTMLDocument;
 use DateTime;
 use DOMElement;
 use DOMNode;
+use Subugoe\TEI2SOLRBundle\Import\HTMLDocument;
 
 /**
  * Specialized service to transform TEI to HTML tags to display an edited text.
@@ -26,22 +26,18 @@ class EditedTextService extends CommonTransformService
         'wavyunderline' => 'letterspace',
         'bold' => 'bold',
     ];
+
     private array $allAnnotationIds = [];
+
     private array $dates = [];
+
     private array $gndsUuids = [];
+
     private ?string $lastSegUuid = null;
+
     private array $notes = [];
+
     private array $works = [];
-
-    protected function handleItem(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
-    {
-        return $doc->li();
-    }
-
-    protected function handleList(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
-    {
-        return $doc->ul();
-    }
 
     public function clear()
     {
@@ -96,9 +92,9 @@ class EditedTextService extends CommonTransformService
 
         if ('courseBus' === $type) {
             return null;
-        } else {
-            return $doc->span();
         }
+
+        return $doc->span();
     }
 
     protected function handleBibl(DOMNode $teiEl, HTMLDocument $doc): ?DOMNode
@@ -108,7 +104,7 @@ class EditedTextService extends CommonTransformService
             $ref = $teiEl->childNodes[0];
             $targetValue = $ref->getAttribute('target');
 
-            if ($targetValue) {
+            if ($targetValue !== '' && $targetValue !== '0') {
                 $targetArr = explode('#', $targetValue);
                 if (isset($targetArr[1]) && !empty($targetArr[1])) {
                     $text = str_replace('_', ' ', $targetArr[1]);
@@ -150,7 +146,7 @@ class EditedTextService extends CommonTransformService
         ];
 
         foreach ($teiEl->attributes as $attribute) {
-            if ('when' === $attribute->nodeName && isset($attribute->value)) {
+            if ('when' === $attribute->nodeName && (property_exists($attribute, 'value') && $attribute->value !== null)) {
                 $when = $attribute;
             }
         }
@@ -176,19 +172,20 @@ class EditedTextService extends CommonTransformService
         $htmlEl = $doc->span();
         if ($teiEl->hasAttributes()) {
             $renditionValue = $teiEl->getAttribute('rendition');
-            if ($renditionValue) {
+            if ($renditionValue !== '' && $renditionValue !== '0') {
                 $htmlEl = $this->handleRenditions($renditionValue, $htmlEl);
             }
 
             $handValue = $teiEl->getAttribute('hand');
-            if ($handValue) {
+            if ($handValue !== '' && $handValue !== '0') {
                 $noteDoc = new HTMLDocument();
                 foreach ($teiEl->childNodes as $child) {
                     $transformed = $this->transformElement($child, $noteDoc);
-                    if ($transformed) {
+                    if ($transformed !== null) {
                         $noteDoc->appendChild($transformed);
                     }
                 }
+
                 $noteText = trim($noteDoc->saveHTML());
 
                 $uuid = $this->createUuid();
@@ -204,9 +201,19 @@ class EditedTextService extends CommonTransformService
         return $htmlEl;
     }
 
+    protected function handleItem(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
+    {
+        return $doc->li();
+    }
+
     protected function handleLb(DOMElement $teiEl, HTMLDocument $doc): DOMNode
     {
         return $doc->text(' ');
+    }
+
+    protected function handleList(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
+    {
+        return $doc->ul();
     }
 
     protected function handleName(DOMElement $teiEl, HTMLDocument $doc): DOMNode
@@ -220,7 +227,7 @@ class EditedTextService extends CommonTransformService
             $uuid = $this->createUuid();
             $this->gndsUuids[$uuid] = str_replace('gnd:', '', $refValue);
             $htmlEl->setAttribute('id', $uuid);
-            if ($typeValue) {
+            if ($typeValue !== '' && $typeValue !== '0') {
                 $htmlEl->setAttribute('class', $typeValue);
             }
         }
@@ -314,17 +321,11 @@ class EditedTextService extends CommonTransformService
             $this->lastSegUuid = $uuid;
 
             $htmlEl = $doc->span();
-            $htmlEl = $this->setUuid($htmlEl, $uuid);
 
-            return $htmlEl;
+            return $this->setUuid($htmlEl, $uuid);
         }
 
         return null;
-    }
-
-    protected function handleSigned(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
-    {
-        return $doc->div('signed');
     }
 
     protected function handleSic(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
@@ -344,6 +345,11 @@ class EditedTextService extends CommonTransformService
         }
 
         return null;
+    }
+
+    protected function handleSigned(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
+    {
+        return $doc->div('signed');
     }
 
     protected function handleSupplied(DOMNode $teiEl, HTMLDocument $doc): ?DOMNode
@@ -369,6 +375,7 @@ class EditedTextService extends CommonTransformService
         if (null === $uuid) {
             $uuid = $this->createUuid();
         }
+
         $el->setAttribute('id', $uuid);
 
         return $el;

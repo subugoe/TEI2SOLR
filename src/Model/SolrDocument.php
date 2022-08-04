@@ -5,14 +5,23 @@ namespace Subugoe\TEI2SOLRBundle\Model;
 class SolrDocument
 {
     private array $allAnnotationIds;
+
     private string $editedText;
+
     private array $gndsUuids;
+
     private array $pageLevelEditedText;
+
     private array $pageLevelTranscriptedText;
+
     private array $pagesDates;
+
     private array $pagesGndsUuids;
+
     private array $pagesNotes;
+
     private array $pagesWorks;
+
     private string $transcriptedText;
 
     public function getAllAnnotationIds(): array
