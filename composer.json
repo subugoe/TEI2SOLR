@@ -1,6 +1,6 @@
 {
     "name": "subugoe/tei2solr-bundle",
-    "description": "TEI2SOLRO Bundle for symfony",
+    "description": "Import TEI into Solr for Symfony",
     "license": "AGPL-3.0-or-later",
     "authors": [
         {
@@ -11,6 +11,7 @@
     "autoload": {
        "psr-4": { "Subugoe\\TEI2SOLRBundle\\": "src/" }
     },
+    "type": "symfony-bundle",
     "require": {
         "php": "^8.0",
         "ext-dom": "*",
