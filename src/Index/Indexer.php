@@ -7,6 +7,7 @@ namespace Subugoe\TEI2SOLRBundle\Index;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
+use Psr\Log\LoggerInterface;
 use Solarium\Client;
 use Subugoe\TEI2SOLRBundle\Model\SolrDocument;
 use Subugoe\TEI2SOLRBundle\Service\EditedTextService;
@@ -133,7 +134,8 @@ class Indexer implements IndexerInterface
 
     private ?string $wikipediaFilesDir;
 
-    public function __construct(private Client $client, private PreProcessingService $preProcessingService, private TranscriptionService $transcriptionService, private EditedTextService $editedTextService, private MetadataTransformerInterface $metadataTransformer)
+    public function __construct(
+        private Client $client, private PreProcessingService $preProcessingService, private TranscriptionService $transcriptionService, private EditedTextService $editedTextService, private MetadataTransformerInterface $metadataTransformer, private LoggerInterface $logger)
     {
     }
 
@@ -335,7 +337,7 @@ class Indexer implements IndexerInterface
                             } elseif ('biblScope' === $childNode->nodeName) {
                                 $name = 'biblScope_'.$childNode->attributes->item(0)->nodeValue;
 
-                                if (property_exists($childNode->attributes->item(1), 'nodeName') && $childNode->attributes->item(1)->nodeName !== null && 'n' === $childNode->attributes->item(1)->nodeName && !empty($childNode->attributes->item(1)->nodeValue)) {
+                                if (property_exists($childNode->attributes->item(1), 'nodeName') && null !== $childNode->attributes->item(1)->nodeName && 'n' === $childNode->attributes->item(1)->nodeName && !empty($childNode->attributes->item(1)->nodeValue)) {
                                     $name .= '_'.$childNode->attributes->item(1)->nodeValue;
                                 }
 
@@ -347,7 +349,7 @@ class Indexer implements IndexerInterface
                                     $litdoc->$solrFieldName = $text;
                                 }
                             } else {
-                                if (property_exists($childNode, 'nodeName') && $childNode->nodeName !== null) {
+                                if (property_exists($childNode, 'nodeName') && null !== $childNode->nodeName) {
                                     $name = strval($childNode->nodeName);
                                 }
 
@@ -397,7 +399,7 @@ class Indexer implements IndexerInterface
             $filesystem = new Filesystem();
             $filesystem->remove($this->litDir);
         } catch (IOExceptionInterface $ioException) {
-            echo 'Error deleting directory at'.$ioException->getPath();
+            $this->logger->error(sprintf('Error deleting directory at %s', $ioException->getPath()));
         }
     }
 
@@ -492,14 +494,14 @@ class Indexer implements IndexerInterface
             $filesystem = new Filesystem();
             $filesystem->remove($this->teiDir);
         } catch (IOExceptionInterface $ioException) {
-            echo 'Error deleting directory at'.$ioException->getPath();
+            $this->logger->error(sprintf('Error deleting directory at %s', $ioException->getPath()));
         }
 
         try {
             $filesystem = new Filesystem();
             $filesystem->remove($this->teiSampleDir);
         } catch (IOExceptionInterface $ioException) {
-            echo 'Error deleting directory at'.$ioException->getPath();
+            $this->logger->error(sprintf('Error deleting directory at %s', $ioException->getPath()));
         }
     }
 
@@ -1155,7 +1157,7 @@ class Indexer implements IndexerInterface
                                 throw new \Exception($localFilePath.PHP_EOL);
                             }
                         } catch (\Exception $exception) {
-                            echo $exception->getMessage().PHP_EOL;
+                            $this->logger->error($exception->getMessage(), $exception->getTrace());
                         }
 
                         // TODO: better exception handling to not go here when remote file path failed
@@ -1171,11 +1173,11 @@ class Indexer implements IndexerInterface
                         $gndArr = json_decode(@file_get_contents($localFilePath));
                     }
 
-                    if (property_exists($gndArr, 'preferredName') && $gndArr->preferredName !== null && !empty($gndArr->preferredName)) {
+                    if (property_exists($gndArr, 'preferredName') && null !== $gndArr->preferredName && !empty($gndArr->preferredName)) {
                         $preferredName = $gndArr->preferredName;
                     }
 
-                    if (property_exists($gndArr, 'variantName') && $gndArr->variantName !== null && !empty($gndArr->variantName)) {
+                    if (property_exists($gndArr, 'variantName') && null !== $gndArr->variantName && !empty($gndArr->variantName)) {
                         $variantNames = $gndArr->variantName;
                     }
 
@@ -1194,7 +1196,7 @@ class Indexer implements IndexerInterface
                         $doc->alternatively_name = $variantNames;
                     }
 
-                    if (property_exists($gndArr, 'hasGeometry') && $gndArr->hasGeometry !== null) {
+                    if (property_exists($gndArr, 'hasGeometry') && null !== $gndArr->hasGeometry) {
                         foreach ($gndArr->hasGeometry as $gitem) {
                             foreach ($gitem->asWKT as $asWKTitem) {
                                 preg_match('#\((.*?)\)#', $asWKTitem, $match);
@@ -1210,9 +1212,9 @@ class Indexer implements IndexerInterface
                         $doc->longitude = $longitudes;
                     }
 
-                    if ($this->indexWikidata && (property_exists($gndArr, 'sameAs') && $gndArr->sameAs !== null) && !empty($gndArr->sameAs)) {
+                    if ($this->indexWikidata && (property_exists($gndArr, 'sameAs') && null !== $gndArr->sameAs) && !empty($gndArr->sameAs)) {
                         foreach ($gndArr->sameAs as $k => $item) {
-                            if (property_exists($item->collection, 'name') && $item->collection->name !== null && 'Wikidata' === $item->collection->name) {
+                            if (property_exists($item->collection, 'name') && null !== $item->collection->name && 'Wikidata' === $item->collection->name) {
                                 $wikidataId = array_reverse(explode('/', $item->id))[0];
 
                                 if (!empty($wikidataId)) {
@@ -1224,7 +1226,7 @@ class Indexer implements IndexerInterface
                                 if (!empty($geonameId)) {
                                     $doc->geoname_id = $geonameId;
                                 }
-                            } elseif (property_exists($item->collection, 'abbr') && $item->collection->abbr !== null && 'dewiki' === $item->collection->abbr) {
+                            } elseif (property_exists($item->collection, 'abbr') && null !== $item->collection->abbr && 'dewiki' === $item->collection->abbr) {
                                 $wikipedia = $item->id;
                             }
                         }
@@ -1232,7 +1234,7 @@ class Indexer implements IndexerInterface
 
                     if (isset($wikipedia) && !empty($wikipedia)) {
                         $doc->de_wikipedia_url = $wikipedia;
-                    } elseif (property_exists($gndArr, 'wikipedia') && $gndArr->wikipedia !== null && !empty($gndArr->wikipedia)) {
+                    } elseif (property_exists($gndArr, 'wikipedia') && null !== $gndArr->wikipedia && !empty($gndArr->wikipedia)) {
                         foreach ($gndArr->wikipedia as $k => $item) {
                             if (str_contains($item->id, 'de.wikipedia.org')) {
                                 $doc->wikidata_id = $item->id;
@@ -1251,7 +1253,7 @@ class Indexer implements IndexerInterface
             $filesystem = new Filesystem();
             $filesystem->remove($this->gndFilesDir);
         } catch (IOExceptionInterface $ioException) {
-            echo 'Error deleting directory at'.$ioException->getPath();
+            $this->logger->error(sprintf('Error deleting directory at %s', $ioException->getPath()));
         }
     }
 
@@ -1282,7 +1284,7 @@ class Indexer implements IndexerInterface
 
         return preg_replace_callback(
             $pattern,
-            static fn($match) => $match[1].$match[2],
+            static fn ($match) => $match[1].$match[2],
             $text
         );
     }

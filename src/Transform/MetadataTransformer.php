@@ -15,7 +15,6 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     private ?string $mainDomain;
 
-
     public function __construct(private RouterInterface $router)
     {
     }
@@ -26,7 +25,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $author = '';
 
-        if ($authorNode->item(0) !== null) {
+        if (null !== $authorNode->item(0)) {
             $author = $authorNode->item(0)->nodeValue;
             $author = trim(preg_replace('#\s+#', ' ', $author));
         }
@@ -61,7 +60,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $country = '';
 
-        if ($countryNode->item(0) !== null) {
+        if (null !== $countryNode->item(0)) {
             $country = $countryNode->item(0)->nodeValue;
         }
 
@@ -74,7 +73,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $destinationPlace = '';
 
-        if ($destinationPlaceNode->item(0) !== null) {
+        if (null !== $destinationPlaceNode->item(0)) {
             $destinationPlace = $destinationPlaceNode->item(0)->nodeValue;
         }
 
@@ -317,7 +316,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $institution = '';
 
-        if ($institutionNode->item(0) !== null) {
+        if (null !== $institutionNode->item(0)) {
             $institution = $institutionNode->item(0)->nodeValue;
         }
 
@@ -330,7 +329,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $language = '';
 
-        if ($languageNode->item(0) !== null) {
+        if (null !== $languageNode->item(0)) {
             $language = $languageNode->item(0)->nodeValue;
             $language = $this->documentLanguages[$language];
         }
@@ -344,7 +343,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $license = '';
 
-        if ($licenseNode->item(0) !== null) {
+        if (null !== $licenseNode->item(0)) {
             $license = $licenseNode->item(0)->nodeValue;
         }
 
@@ -382,7 +381,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
     public function getNodeChilds($pagesNode, &$ele): array
     {
-        if (property_exists($pagesNode, 'childNodes') && $pagesNode->childNodes !== null) {
+        if (property_exists($pagesNode, 'childNodes') && null !== $pagesNode->childNodes) {
             foreach ($pagesNode->childNodes as $childNode) {
                 $ele[] = $childNode;
                 if ($childNode->childNodes) {
@@ -403,7 +402,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $numberOfPages = 0;
 
-        if ($numberOfPagesNode->count() !== 0) {
+        if (0 !== $numberOfPagesNode->count()) {
             $numberOfPages = $numberOfPagesNode->count();
         }
 
@@ -416,7 +415,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $originDate = '';
 
-        if ($originDateNode->item(0) !== null) {
+        if (null !== $originDateNode->item(0)) {
             $originDate = $originDateNode->item(0)->nodeValue;
         }
 
@@ -429,7 +428,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $originPlace = '';
 
-        if ($originPlaceNode->item(0) !== null) {
+        if (null !== $originPlaceNode->item(0)) {
             $originPlace = $originPlaceNode->item(0)->nodeValue;
         }
 
@@ -442,7 +441,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $pageFrom = '';
 
-        if ($pageFromNode->item(0) !== null) {
+        if (null !== $pageFromNode->item(0)) {
             $pageFrom = (int) $pageFromNode->item(0)->nodeValue;
         }
 
@@ -455,7 +454,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $pageTo = '';
 
-        if ($pageToNode->item(0) !== null) {
+        if (null !== $pageToNode->item(0)) {
             $pageTo = (int) $pageToNode->item(0)->nodeValue;
         }
 
@@ -482,14 +481,14 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $publicationDate = '';
 
-        if ($publicationDateNode->item(0) !== null) {
+        if (null !== $publicationDateNode->item(0)) {
             $publicationDate = $publicationDateNode->item(0)->nodeValue;
         }
 
         if (empty($publicationDate)) {
             $publicationDateNode = $xpath->query('//tei:date/text()');
 
-            if ($publicationDateNode->item(0) !== null) {
+            if (null !== $publicationDateNode->item(0)) {
                 $publicationDate = $publicationDateNode->item(0)->nodeValue;
             }
         }
@@ -516,7 +515,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $recipient = '';
 
-        if ($recipientNode->item(0) !== null) {
+        if (null !== $recipientNode->item(0)) {
             $recipient = $recipientNode->item(0)->nodeValue;
             $recipient = trim(preg_replace('#\s+#', ' ', $recipient));
         }
@@ -530,7 +529,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $reference = '';
 
-        if ($referenceNode->item(0) !== null) {
+        if (null !== $referenceNode->item(0)) {
             $referenceText = $referenceNode->item(0)->nodeValue;
             $referenceText = trim(preg_replace('#\s+#', ' ', $referenceText));
             $refLink = $referenceNode->item(0)->attributes->item(0)->textContent;
@@ -589,7 +588,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $repository = '';
 
-        if ($repositoryNode->item(0) !== null) {
+        if (null !== $repositoryNode->item(0)) {
             $repository = $repositoryNode->item(0)->nodeValue;
         }
 
@@ -602,7 +601,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $response = '';
 
-        if ($responseNode->item(0) !== null) {
+        if (null !== $responseNode->item(0)) {
             $responseText = $responseNode->item(0)->nodeValue;
             $responseText = trim(preg_replace('#\s+#', ' ', $responseText));
             $refLink = $responseNode->item(0)->attributes->item(0)->textContent;
@@ -666,7 +665,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $settlement = '';
 
-        if ($settlementNode->item(0) !== null) {
+        if (null !== $settlementNode->item(0)) {
             $settlement = $settlementNode->item(0)->nodeValue;
         }
 
@@ -679,7 +678,7 @@ class MetadataTransformer implements MetadataTransformerInterface
 
         $shelfmark = '';
 
-        if ($shelfmarkNode->item(0) !== null) {
+        if (null !== $shelfmarkNode->item(0)) {
             $shelfmark = trim(preg_replace('#\s+#', ' ', $shelfmarkNode->item(0)->nodeValue));
         }
 

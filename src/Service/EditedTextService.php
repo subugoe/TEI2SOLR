@@ -104,7 +104,7 @@ class EditedTextService extends CommonTransformService
             $ref = $teiEl->childNodes[0];
             $targetValue = $ref->getAttribute('target');
 
-            if ($targetValue !== '' && $targetValue !== '0') {
+            if ('' !== $targetValue && '0' !== $targetValue) {
                 $targetArr = explode('#', $targetValue);
                 if (isset($targetArr[1]) && !empty($targetArr[1])) {
                     $text = str_replace('_', ' ', $targetArr[1]);
@@ -146,7 +146,7 @@ class EditedTextService extends CommonTransformService
         ];
 
         foreach ($teiEl->attributes as $attribute) {
-            if ('when' === $attribute->nodeName && (property_exists($attribute, 'value') && $attribute->value !== null)) {
+            if ('when' === $attribute->nodeName && (property_exists($attribute, 'value') && null !== $attribute->value)) {
                 $when = $attribute;
             }
         }
@@ -172,16 +172,16 @@ class EditedTextService extends CommonTransformService
         $htmlEl = $doc->span();
         if ($teiEl->hasAttributes()) {
             $renditionValue = $teiEl->getAttribute('rendition');
-            if ($renditionValue !== '' && $renditionValue !== '0') {
+            if ('' !== $renditionValue && '0' !== $renditionValue) {
                 $htmlEl = $this->handleRenditions($renditionValue, $htmlEl);
             }
 
             $handValue = $teiEl->getAttribute('hand');
-            if ($handValue !== '' && $handValue !== '0') {
+            if ('' !== $handValue && '0' !== $handValue) {
                 $noteDoc = new HTMLDocument();
                 foreach ($teiEl->childNodes as $child) {
                     $transformed = $this->transformElement($child, $noteDoc);
-                    if ($transformed !== null) {
+                    if (null !== $transformed) {
                         $noteDoc->appendChild($transformed);
                     }
                 }
@@ -227,7 +227,7 @@ class EditedTextService extends CommonTransformService
             $uuid = $this->createUuid();
             $this->gndsUuids[$uuid] = str_replace('gnd:', '', $refValue);
             $htmlEl->setAttribute('id', $uuid);
-            if ($typeValue !== '' && $typeValue !== '0') {
+            if ('' !== $typeValue && '0' !== $typeValue) {
                 $htmlEl->setAttribute('class', $typeValue);
             }
         }

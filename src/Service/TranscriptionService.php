@@ -63,7 +63,7 @@ class TranscriptionService extends CommonTransformService
         $htmlEl = $doc->span();
         $prefix = '';
 
-        if (property_exists($teiEl, 'previousSibling') && $teiEl->previousSibling !== null && 'del' !== $teiEl->previousSibling->nodeName) {
+        if (property_exists($teiEl, 'previousSibling') && null !== $teiEl->previousSibling && 'del' !== $teiEl->previousSibling->nodeName) {
             $prefix = ' ';
         }
 
@@ -95,7 +95,7 @@ class TranscriptionService extends CommonTransformService
 
         $suffix = self::SQUARE_BRACKET_CLOSE;
 
-        if (property_exists($teiEl, 'nextSibling') && $teiEl->nextSibling !== null && 'add' !== $teiEl->nextSibling->nodeName) {
+        if (property_exists($teiEl, 'nextSibling') && null !== $teiEl->nextSibling && 'add' !== $teiEl->nextSibling->nodeName) {
             $suffix .= ' ';
         }
 
@@ -115,14 +115,14 @@ class TranscriptionService extends CommonTransformService
         if ($teiEl->hasAttributes()) {
             $renditionValue = $teiEl->getAttribute('rendition');
 
-            if ($renditionValue !== '' && $renditionValue !== '0') {
+            if ('' !== $renditionValue && '0' !== $renditionValue) {
                 $htmlEl = $this->handleRenditions($renditionValue, $htmlEl);
             }
 
             $this->transformAllChildren($teiEl, $htmlEl, $doc);
             $handValue = $teiEl->getAttribute('hand');
 
-            if ($handValue !== '' && $handValue !== '0') {
+            if ('' !== $handValue && '0' !== $handValue) {
                 $prefix = ' '.self::ANGLE_BRACKET_OPEN;
                 $suffix = self::ANGLE_BRACKET_CLOSE.' ';
                 $htmlEl->appendChild($doc->text($prefix));

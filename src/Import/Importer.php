@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Subugoe\TEI2SOLRBundle\Import;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 
@@ -37,6 +38,10 @@ class Importer implements ImporterInterface
 
     private ?string $teiSampleDir = null;
 
+    public function __construct(private LoggerInterface $logger)
+    {
+    }
+
     public function importMultipelFolderTeiFiles(): void
     {
         $activeTeiFolders = [];
@@ -67,12 +72,12 @@ class Importer implements ImporterInterface
                                     $this->teiDir.$teiFile['name'],
                                     base64_decode($fileData['content'])
                                 );
-                            } catch (FileException) {
-                                echo $teiFile['name'].' could not be imported.';
+                            } catch (FileException $fileException) {
+                                $this->logger->error(sprintf('%s could not be imported.', $teiFile['name']), $fileException->getTrace());
                             }
                         } else {
                             // TODO retry to download the file again
-                            echo $teiFile['name'].' could not be imported.';
+                            $this->logger->error(sprintf('%s could not be imported.', $teiFile['name']));
                         }
                     }
                 }
@@ -121,18 +126,18 @@ class Importer implements ImporterInterface
                                         $this->teiDir.$file['name'],
                                         base64_decode($fileData['content'])
                                     );
-                                } catch (FileException) {
-                                    echo $file['name'].' could not be imported.';
+                                } catch (FileException $fileException) {
+                                    $this->logger->error(sprintf('%s could not be imported.', $file['name']), $fileException->getTrace());
                                 }
                             } else {
                                 // TODO retry to download the file again
-                                echo $file['name'].' could not be imported.';
+                                $this->logger->error(sprintf('%s could not be imported.', $file['name']));
                             }
                         }
                     }
                 }
-            } catch (FileException) {
-                echo 'Files list could not be imported from gitlab';
+            } catch (FileException $fileException) {
+                $this->logger->error('Files list could not be imported from gitlab.', $fileException->getTrace());
             }
         }
     }
@@ -226,17 +231,17 @@ class Importer implements ImporterInterface
                                 $this->litDir.$file['name'],
                                 base64_decode($fileData['content'])
                             );
-                        } catch (FileException) {
-                            echo $file['name'].' could not be imported.';
+                        } catch (FileException $fileException) {
+                            $this->logger->error(sprintf('%s could not be imported.', $file['name']), $fileException->getTrace());
                         }
                     } else {
                         // TODO retry to download the file again
-                        echo $file['name'].' could not be imported.';
+                        $this->logger->error(sprintf('%s could not be imported.', $file['name']));
                     }
                 }
             }
-        } catch (FileException) {
-            echo 'Literature files list could not be imported from gitlab';
+        } catch (FileException $fileException) {
+            $this->logger->error('Literature files list could not be imported from gitlab', $fileException->getTrace());
         }
     }
 }

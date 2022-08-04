@@ -87,7 +87,7 @@ class PreProcessingService
             // After we finished iterating (recursively) over all children
             // we are done here and want move on with our next sibling
             // so we have to set lastParent to it's parent
-            if ($this->lastParent->parentNode !== null) {
+            if (null !== $this->lastParent->parentNode) {
                 $this->lastParent = $this->lastParent->parentNode;
             }
         }

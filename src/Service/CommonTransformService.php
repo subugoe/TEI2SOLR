@@ -56,7 +56,7 @@ class CommonTransformService
 
         foreach ($teiEl->childNodes as $child) {
             $transformed = $this->transformElement($child, $doc, $addSpace);
-            if ($transformed !== null) {
+            if (null !== $transformed) {
                 $htmlEl->appendChild($transformed);
             }
         }
@@ -66,7 +66,7 @@ class CommonTransformService
 
     public function transformElement(DOMNode $teiEl, HTMLDocument $doc, bool $addSpace = false): ?DOMNode
     {
-        $methodName = 'handle'. ucfirst(trim($teiEl->nodeName, '#'));
+        $methodName = 'handle'.ucfirst(trim($teiEl->nodeName, '#'));
 
         if (method_exists($this, $methodName)) {
             if ($addSpace && 'handletext' === $methodName) {
@@ -101,7 +101,7 @@ class CommonTransformService
         /** @var DOMElement $element */
         foreach ($page->childNodes as $element) {
             $transformed = $this->transformElement($element, $doc);
-            if ($transformed !== null) {
+            if (null !== $transformed) {
                 $doc->appendChild($transformed);
             }
         }
@@ -218,7 +218,7 @@ class CommonTransformService
 
         if (!empty($style) && isset($this->renditions[$style])) {
             $className = $this->renditions[$style];
-            if ($className !== '' && $className !== '0') {
+            if ('' !== $className && '0' !== $className) {
                 $htmlEl->setAttribute('class', $className);
             }
         }
