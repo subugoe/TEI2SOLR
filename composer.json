@@ -16,16 +16,16 @@
         "ext-dom": "*",
         "ext-libxml": "*",
         "solarium/solarium": "^6.1",
-        "symfony/console": "^6.1",
-        "symfony/config": "^6.1",
-        "symfony/dependency-injection": "^6.1",
-        "symfony/http-kernel": "^6.1",
+        "symfony/console": "^5.4 || ^6.1",
+        "symfony/config": "^5.4 || ^6.1",
+        "symfony/dependency-injection": "^5.4 || ^6.1",
+        "symfony/http-kernel": "^5.4 || ^6.1",
         "league/flysystem": "^3.2",
-        "symfony/routing": "^6.1",
-        "symfony/uid": "^6.1"
+        "symfony/routing": "^5.4 || ^6.1",
+        "symfony/uid": "^5.4 || ^6.1"
     },
     "require-dev": {
-        "symfony/phpunit-bridge": "^6.1",
+        "symfony/phpunit-bridge": "^5.4 || ^6.1",
         "friendsofphp/php-cs-fixer": "^3.0",
         "rector/rector": "^0.13"
     }
