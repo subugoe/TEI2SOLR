@@ -400,6 +400,19 @@ class MetadataTransformer implements MetadataTransformerInterface
         return $license;
     }
 
+    public function getLicenseLink(DOMXPath $xpath): string
+    {
+        $licenseLinkNode = $xpath->query('//tei:licence//@target');
+
+        $licenseLink = '';
+
+        if ($licenseLinkNode->item(0)) {
+            $licenseLink = $licenseLinkNode->item(0)->nodeValue;
+        }
+
+        return $licenseLink;
+    }
+
     public function getNodeChilds($pagesNode, &$ele): array
     {
         if (isset($pagesNode->childNodes)) {
