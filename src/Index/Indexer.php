@@ -729,6 +729,15 @@ class Indexer implements IndexerInterface
                 }
             }
 
+            if (in_array('license_link', $transformationFields)) {
+                $licenseLink = $this->metadataTransformer->getLicenseLink($xpath);
+
+                if (!empty($licenseLink)) {
+                    $licenseLink = trim(preg_replace('/\s+/', ' ', $licenseLink));
+                    $doc->license_link = $licenseLink;
+                }
+            }
+
             if (in_array('language', $transformationFields)) {
                 $language = $this->metadataTransformer->getLanguage($xpath);
 
