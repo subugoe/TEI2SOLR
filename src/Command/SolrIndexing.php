@@ -6,14 +6,16 @@ namespace Subugoe\TEI2SOLRBundle\Command;
 
 use Subugoe\TEI2SOLRBundle\Import\ImporterInterface;
 use Subugoe\TEI2SOLRBundle\Index\IndexerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'app:tei2solr',
+)]
 class SolrIndexing extends Command
 {
-    protected static $defaultName = 'app:tei2solr';
-
     protected static string $description = 'Process TEI data to solr data for importing into solr.';
 
     private ?bool $importSampleTei;
