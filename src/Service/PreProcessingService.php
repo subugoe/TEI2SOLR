@@ -9,11 +9,27 @@ use DOMNode;
 class PreProcessingService
 {
     private DOMNode $lastParent;
+
     private array $pages = [];
 
     public function clear()
     {
         $this->pages = [];
+    }
+
+    public function getMultiplePages(DOMELement $body)
+    {
+        $this->pages[] = new DOMDocument();
+
+        // To start out we set our empty page as last parent to append other elements to
+        $this->lastParent = $this->getLastPage();
+
+        $isSinglePage = false;
+
+        // Start recursion
+        $this->checkPb($body, $isSinglePage);
+
+        return $this->pages;
     }
 
     public function getPages(): array
@@ -30,21 +46,6 @@ class PreProcessingService
         $this->pages[] = $singlePage;
         $this->lastParent = $node;
         $isSinglePage = true;
-        // Start recursion
-        $this->checkPb($body, $isSinglePage);
-
-        return $this->pages;
-    }
-
-    public function getMultiplePages(DOMELement $body)
-    {
-        $this->pages[] = new DOMDocument();
-
-        // To start out we set our empty page as last parent to append other elements to
-        $this->lastParent = $this->getLastPage();
-
-        $isSinglePage = false;
-
         // Start recursion
         $this->checkPb($body, $isSinglePage);
 
@@ -86,7 +87,7 @@ class PreProcessingService
             // After we finished iterating (recursively) over all children
             // we are done here and want move on with our next sibling
             // so we have to set lastParent to it's parent
-            if ($this->lastParent->parentNode) {
+            if (null !== $this->lastParent->parentNode) {
                 $this->lastParent = $this->lastParent->parentNode;
             }
         }
@@ -117,6 +118,7 @@ class PreProcessingService
             if ('body' === $parent->nodeName) {
                 break;
             }
+
             $parent = $parent->parentNode;
         }
 
@@ -139,6 +141,7 @@ class PreProcessingService
         // to the new page to maintain it for further processing
         $pbClone = $newPage->createElement('pb');
         $pbClone = $this->cloneAttributes($pbEl->attributes, $pbClone);
+
         $newPage->insertBefore($pbClone, $newPage->firstChild);
 
         return $newPage;
@@ -146,6 +149,6 @@ class PreProcessingService
 
     private function getLastPage(): ?DOMDocument
     {
-        return (!empty($this->pages)) ? $this->pages[count($this->pages) - 1] : null;
+        return (empty($this->pages)) ? null : $this->pages[count($this->pages) - 1];
     }
 }

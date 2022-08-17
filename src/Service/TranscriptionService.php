@@ -2,18 +2,33 @@
 
 namespace Subugoe\TEI2SOLRBundle\Service;
 
-use Subugoe\TEI2SOLRBundle\Import\HTMLDocument;
 use DOMElement;
 use DOMNode;
+use Subugoe\TEI2SOLRBundle\Import\HTMLDocument;
 
 /**
  * Specialized service to transform TEI to HTML tags to display a transcription.
  */
 class TranscriptionService extends CommonTransformService
 {
+    /**
+     * @var string
+     */
     private const ANGLE_BRACKET_CLOSE = '&rang;';
+
+    /**
+     * @var string
+     */
     private const ANGLE_BRACKET_OPEN = '&lang;';
+
+    /**
+     * @var string
+     */
     private const SQUARE_BRACKET_CLOSE = '&rsqb;';
+
+    /**
+     * @var string
+     */
     private const SQUARE_BRACKET_OPEN = '&lsqb;';
 
     public array $ignoreChildrenList = [
@@ -37,16 +52,6 @@ class TranscriptionService extends CommonTransformService
         'bold' => 'bold',
     ];
 
-    protected function handleItem(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
-    {
-        return $doc->li();
-    }
-
-    protected function handleList(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
-    {
-        return $doc->ul();
-    }
-
     protected function handleAdd(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
     {
         $type = $teiEl->getAttribute('type');
@@ -58,7 +63,7 @@ class TranscriptionService extends CommonTransformService
         $htmlEl = $doc->span();
         $prefix = '';
 
-        if (isset($teiEl->previousSibling) && 'del' !== $teiEl->previousSibling->nodeName) {
+        if (property_exists($teiEl, 'previousSibling') && null !== $teiEl->previousSibling && 'del' !== $teiEl->previousSibling->nodeName) {
             $prefix = ' ';
         }
 
@@ -87,11 +92,13 @@ class TranscriptionService extends CommonTransformService
         $this->transformAllChildren($teiEl, $htmlEl, $doc);
         $htmlEl->appendChild($doc->text(' '));
         $htmlEl->appendChild($this->handleTextCriticalAttributes($teiEl, 'str.', $doc));
+
         $suffix = self::SQUARE_BRACKET_CLOSE;
 
-        if (isset($teiEl->nextSibling) && 'add' !== $teiEl->nextSibling->nodeName) {
+        if (property_exists($teiEl, 'nextSibling') && null !== $teiEl->nextSibling && 'add' !== $teiEl->nextSibling->nodeName) {
             $suffix .= ' ';
         }
+
         $htmlEl->appendChild($doc->text($suffix));
 
         return $htmlEl;
@@ -108,14 +115,14 @@ class TranscriptionService extends CommonTransformService
         if ($teiEl->hasAttributes()) {
             $renditionValue = $teiEl->getAttribute('rendition');
 
-            if ($renditionValue) {
+            if ('' !== $renditionValue && '0' !== $renditionValue) {
                 $htmlEl = $this->handleRenditions($renditionValue, $htmlEl);
             }
 
             $this->transformAllChildren($teiEl, $htmlEl, $doc);
             $handValue = $teiEl->getAttribute('hand');
 
-            if ($handValue) {
+            if ('' !== $handValue && '0' !== $handValue) {
                 $prefix = ' '.self::ANGLE_BRACKET_OPEN;
                 $suffix = self::ANGLE_BRACKET_CLOSE.' ';
                 $htmlEl->appendChild($doc->text($prefix));
@@ -129,9 +136,19 @@ class TranscriptionService extends CommonTransformService
         return $htmlEl;
     }
 
+    protected function handleItem(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
+    {
+        return $doc->li();
+    }
+
     protected function handleLb(DOMElement $teiEl, HTMLDocument $doc): DOMNode
     {
         return $doc->br();
+    }
+
+    protected function handleList(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode
+    {
+        return $doc->ul();
     }
 
     protected function handleNote(DOMElement $teiEl, HTMLDocument $doc): ?DOMNode

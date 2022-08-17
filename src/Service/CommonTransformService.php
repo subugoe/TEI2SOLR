@@ -2,10 +2,10 @@
 
 namespace Subugoe\TEI2SOLRBundle\Service;
 
-use Subugoe\TEI2SOLRBundle\Import\HTMLDocument;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
+use Subugoe\TEI2SOLRBundle\Import\HTMLDocument;
 
 /**
  * Service for TEI to HTML transformations that are handled equally in transcription and edited text.
@@ -38,6 +38,7 @@ class CommonTransformService
         'underline' => 'underline',
         'wavyunderline' => 'underline',
     ];
+
     private array $graphics = [];
 
     public function setGraphics(array $graphics): void
@@ -55,7 +56,7 @@ class CommonTransformService
 
         foreach ($teiEl->childNodes as $child) {
             $transformed = $this->transformElement($child, $doc, $addSpace);
-            if ($transformed) {
+            if (null !== $transformed) {
                 $htmlEl->appendChild($transformed);
             }
         }
@@ -65,7 +66,7 @@ class CommonTransformService
 
     public function transformElement(DOMNode $teiEl, HTMLDocument $doc, bool $addSpace = false): ?DOMNode
     {
-        $methodName = 'handle'.trim(ucfirst($teiEl->nodeName), '#');
+        $methodName = 'handle'.ucfirst(trim($teiEl->nodeName, '#'));
 
         if (method_exists($this, $methodName)) {
             if ($addSpace && 'handletext' === $methodName) {
@@ -73,8 +74,6 @@ class CommonTransformService
             } else {
                 $htmlEl = $this->{$methodName}($teiEl, $doc);
             }
-
-
         } else {
             $htmlEl = $doc->span();
         }
@@ -102,7 +101,7 @@ class CommonTransformService
         /** @var DOMElement $element */
         foreach ($page->childNodes as $element) {
             $transformed = $this->transformElement($element, $doc);
-            if ($transformed) {
+            if (null !== $transformed) {
                 $doc->appendChild($transformed);
             }
         }
@@ -219,7 +218,7 @@ class CommonTransformService
 
         if (!empty($style) && isset($this->renditions[$style])) {
             $className = $this->renditions[$style];
-            if ($className) {
+            if ('' !== $className && '0' !== $className) {
                 $htmlEl->setAttribute('class', $className);
             }
         }
@@ -271,7 +270,7 @@ class CommonTransformService
 
     protected function handleText(DOMNode $el, HTMLDocument $doc, bool $addSpace = false): DOMNode
     {
-        $textContent = (!$addSpace) ? $el->textContent : $el->textContent.' ';
+        $textContent = ($addSpace) ? $el->textContent.' ' : $el->textContent;
 
         return $doc->text($textContent);
     }
@@ -285,7 +284,7 @@ class CommonTransformService
         } else {
             foreach ($teiEl->attributes as $attribute) {
                 if ('hand' === $attribute->nodeName) {
-                    if (false !== strpos($attribute->nodeValue, 'scrb')) {
+                    if (str_contains($attribute->nodeValue, 'scrb')) {
                         $valueArr = explode('scrb', $attribute->nodeValue);
                         if (isset($valueArr[1])) {
                             $valueArr = explode('_', ltrim($valueArr[1], '_'));

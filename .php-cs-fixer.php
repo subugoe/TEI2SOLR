@@ -1,8 +1,8 @@
 <?php
 
 $finder = PhpCsFixer\Finder::create()
-    ->exclude(['var', 'cache', 'build', 'vendor', 'public'])
-    ->in(__DIR__.'/src');
+    ->ignoreVCSIgnored(true)
+    ->in(__DIR__);
 
 return (new PhpCsFixer\Config())
     ->setRules([
