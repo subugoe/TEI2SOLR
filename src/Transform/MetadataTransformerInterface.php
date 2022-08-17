@@ -42,6 +42,8 @@ interface MetadataTransformerInterface
 
     public function getLicense(DOMXPath $xpath): string;
 
+    public function getLicenseLink(DOMXPath $xpath): string;
+
     public function getLocation(DOMXPath $xpath): string;
 
     public function getMarker(DOMXPath $xpath): string;
