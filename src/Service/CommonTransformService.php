@@ -69,7 +69,7 @@ class CommonTransformService
         $methodName = 'handle'.ucfirst(trim($teiEl->nodeName, '#'));
 
         if (method_exists($this, $methodName)) {
-            if ($addSpace && 'handletext' === $methodName) {
+            if ($addSpace && 'handleText' === $methodName) {
                 $htmlEl = $this->{$methodName}($teiEl, $doc, $addSpace);
             } else {
                 $htmlEl = $this->{$methodName}($teiEl, $doc);
@@ -270,7 +270,7 @@ class CommonTransformService
 
     protected function handleText(DOMNode $el, HTMLDocument $doc, bool $addSpace = false): DOMNode
     {
-        $textContent = ($addSpace) ? $el->textContent.' ' : $el->textContent;
+        $textContent = ($addSpace) ? $el->textContent.'&nbsp;' : $el->textContent;
 
         return $doc->text($textContent);
     }
