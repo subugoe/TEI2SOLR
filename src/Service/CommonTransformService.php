@@ -277,7 +277,7 @@ class CommonTransformService
     {
         $textContent = ($addSpace) ? $el->textContent.'&nbsp;' : $el->textContent;
 
-        $textContent = ($multipleAuthor) ? '&#44;&nbsp;'.$el->textContent: $el->textContent;
+        $textContent = ($multipleAuthor) ? '&#44;&nbsp;'.$textContent : $textContent;
 
         return $doc->text($textContent);
     }
