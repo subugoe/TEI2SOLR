@@ -49,13 +49,18 @@ class CommonTransformService
     public function transformAllChildren(DOMNode $teiEl, DOMNode $htmlEl, HTMLDocument $doc): DOMNode
     {
         $addSpace = false;
+        $multipleAuthor = false;
 
         if ('name' === $teiEl->nodeName && 'forename' === $teiEl->getAttribute('type')) {
             $addSpace = true;
+
+            if ($teiEl->parentNode->previousSibling && 'docAuthor' === $teiEl->parentNode->previousSibling->nodeName) {
+                $multipleAuthor = true;
+            }
         }
 
         foreach ($teiEl->childNodes as $child) {
-            $transformed = $this->transformElement($child, $doc, $addSpace);
+            $transformed = $this->transformElement($child, $doc, $addSpace, $multipleAuthor);
             if (null !== $transformed) {
                 $htmlEl->appendChild($transformed);
             }
@@ -64,13 +69,13 @@ class CommonTransformService
         return $htmlEl;
     }
 
-    public function transformElement(DOMNode $teiEl, HTMLDocument $doc, bool $addSpace = false): ?DOMNode
+    public function transformElement(DOMNode $teiEl, HTMLDocument $doc, bool $addSpace = false, bool $multipleAuthor = false): ?DOMNode
     {
         $methodName = 'handle'.ucfirst(trim($teiEl->nodeName, '#'));
 
         if (method_exists($this, $methodName)) {
             if ($addSpace && 'handleText' === $methodName) {
-                $htmlEl = $this->{$methodName}($teiEl, $doc, $addSpace);
+                $htmlEl = $this->{$methodName}($teiEl, $doc, $addSpace, $multipleAuthor);
             } else {
                 $htmlEl = $this->{$methodName}($teiEl, $doc);
             }
@@ -268,9 +273,11 @@ class CommonTransformService
         return $htmlEl;
     }
 
-    protected function handleText(DOMNode $el, HTMLDocument $doc, bool $addSpace = false): DOMNode
+    protected function handleText(DOMNode $el, HTMLDocument $doc, bool $addSpace = false, bool $multipleAuthor = false): DOMNode
     {
         $textContent = ($addSpace) ? $el->textContent.'&nbsp;' : $el->textContent;
+
+        $textContent = ($multipleAuthor) ? '&#44;&nbsp;'.$el->textContent: $el->textContent;
 
         return $doc->text($textContent);
     }
