@@ -817,6 +817,45 @@ class MetadataTransformer implements MetadataTransformerInterface
         return $writers;
     }
 
+    public function getExistencePeriod(DOMXPath $xpath): array
+    {
+        $existenceDateFromNodes = $xpath->query('//tei:notesStmt//tei:note//tei:date/@from');
+        $existenceDateToNodes = $xpath->query('//tei:notesStmt//tei:note//tei:date/@to');
+
+        $fromArr = [];
+        $toArr = [];
+
+        foreach ($existenceDateFromNodes as $key => $existenceDateFromNode) {
+            $from = $existenceDateFromNode->value;
+            $to = $existenceDateToNodes[$key]->value;
+
+            if (empty($from) && !empty($to)) {
+                $from = $to;
+            }
+
+            if (empty($to) && !empty($from)) {
+                $to = $from;
+            }
+
+            $fromArr[] = $from;
+            $toArr[] = $to;
+        }
+
+        if (count($fromArr) == count($toArr)) {
+            sort($fromArr);
+            sort($toArr);
+            $edate = [];
+
+            foreach ($fromArr as $k => $from) {
+                if (!empty($toArr[$k])) {
+                    $edate[] = $from.'-'.$toArr[$k];
+                }
+            }
+        }
+
+        return $edate;
+    }
+
     public function setConfigs(string $mainDomain, array $documentLanguages, int $handleAuthorName): void
     {
         $this->mainDomain = $mainDomain;
