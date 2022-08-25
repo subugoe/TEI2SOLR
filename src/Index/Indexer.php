@@ -1072,6 +1072,13 @@ class Indexer implements IndexerInterface
                 }
             }
 
+            if (in_array('existence_period', $transformationFields)) {
+                $existenceDate = $this->metadataTransformer->getExistencePeriod($xpath);
+                if (!empty($existenceDate)) {
+                    $doc->existence_period = $existenceDate;
+                }
+            }
+
             if (isset($notes) && !empty($notes)) {
                 $doc->notes = $notes;
             }
